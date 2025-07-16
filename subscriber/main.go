@@ -1,4 +1,3 @@
-// -------- subscriber/main.go --------
 package main
 
 import (
@@ -12,17 +11,13 @@ import (
 	"google.golang.org/api/option"
 )
 
-// SensorData coincide con el publisher
-type SensorData struct {
-	Sector      string  `json:"sector"`
-	Timestamp   int64   `json:"timestamp"`
-	Presence    bool    `json:"presence"`
-	CurrentA    float64 `json:"current_a"`
-	Temperature float64 `json:"temperature"`
-}
+var (
+	alertThreshold  float64 = 3.0  // Se puede leer desde config.json si lo deseas
+	acTempThreshold float64 = 24.0 // Temperatura mínima para encender el aire
+	lastStates              = make(map[string]FilteredData)
+)
 
 func main() {
-	// Inicializar Firebase
 	ctx := context.Background()
 	opt := option.WithCredentialsFile("/path/to/serviceAccountKey.json")
 	app, err := firebase.NewApp(ctx, nil, opt)
@@ -34,14 +29,12 @@ func main() {
 		log.Fatalf("error initializing database client: %v", err)
 	}
 
-	// Inicializar MQTT
-	opts := mqtt.NewClientOptions().AddBroker("tcp://localhost:1883").SetClientID("sensor-subscriber")
+	opts := mqtt.NewClientOptions().AddBroker("tcp://localhost:1883").SetClientID("sensor-edge")
 	mqttClient := mqtt.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
 
-	// Suscribirse a todos los sensores
 	topic := "office/+/sensors"
 	mqttClient.Subscribe(topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
 		var data SensorData
@@ -49,22 +42,23 @@ func main() {
 			log.Printf("error parsing message: %v", err)
 			return
 		}
-		// Escribir en Firebase RTDB bajo /readings/{sector}/{timestamp}
-		ref := client.NewRef(fmt.Sprintf("/readings/%s/%d", data.Sector, data.Timestamp))
-		if err := ref.Set(ctx, data); err != nil {
-			log.Printf("error writing to firebase: %v", err)
-		} else {
-			fmt.Printf("[STORE] sector=%s time=%d\n", data.Sector, data.Timestamp)
+
+		// Filtrado inteligente
+		filtered := FilterData(data, alertThreshold)
+		filtered.ACStatus = ShouldTurnOnAC(filtered.Presence, data.Temperature, acTempThreshold)
+
+		last, exists := lastStates[data.Sector]
+		// Solo guarda si cambia presencia, alerta o estado del aire
+		if !exists || last.Presence != filtered.Presence || last.Alert != filtered.Alert || last.ACStatus != filtered.ACStatus {
+			lastStates[data.Sector] = filtered
+			ref := client.NewRef(fmt.Sprintf("/filtered_readings/%s/%d", filtered.Sector, filtered.Timestamp))
+			if err := ref.Set(ctx, filtered); err != nil {
+				log.Printf("error writing to firebase: %v", err)
+			} else {
+				fmt.Printf("[STORE] sector=%s time=%d presence=%v currentA=%.2f alert=%v AC=%v\n", filtered.Sector, filtered.Timestamp, filtered.Presence, filtered.CurrentA, filtered.Alert, filtered.ACStatus)
+			}
 		}
 	})
 
-	// Mantener el proceso vivo
 	select {}
 }
-
-/*
-Para visualizar los datos en un tablero de control podrías usar:
-- Una aplicación web (React/Angular) que consuma Firebase RTDB en tiempo real.
-- Mostrar gráficos por sector y umbrales de alerta.
-- Funciones específicas: apagado remoto de aires o luces vía llamadas a otro endpoint MQTT.
-*/
