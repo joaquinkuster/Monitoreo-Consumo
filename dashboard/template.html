@@ -1,60 +1,253 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
+
 <head>
-    <title>Panel de Monitoreo</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard de Consumo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f4f4;
+            color: #333;
+        }
+
+        header {
+            background: #333;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        #chartContainer {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 1rem;
+            justify-content: center;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .card {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .status {
+            margin-top: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.7rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            color: white;
+        }
+
+        .on {
+            background: green;
+        }
+
+        .off {
+            background: red;
+        }
+
+        #events {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 300px;
+            z-index: 1000;
+        }
+
+        .event-toast {
+            background: #ffdddd;
+            padding: 0.7rem;
+            border-left: 5px solid red;
+            margin-bottom: 0.5rem;
+            border-radius: 5px;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Panel de Monitoreo</h1>
-    <form id="thresholdForm">
-        Umbral de corriente: <input type="number" step="0.1" name="threshold" value="{{.Threshold}}">
-        <button type="submit">Actualizar</button>
-    </form>
-    <div id="events">
-        {{range .Events}}
-            <div class="event">{{.}}</div>
+    <header>
+        <h1>Panel de Monitoreo de Consumo</h1>
+    </header>
+
+    <div id="chartContainer"></div>
+
+    <div class="container">
+        {{range $sector, $r := .Resumenes}}
+        <div class="card">
+            <h2>Oficina {{$sector}}</h2>
+            <p><strong>Último registro:</strong> {{formatTimestamp $r.Timestamp}}</p>
+            <p><strong>Consumo promedio:</strong> {{$r.PromedioAmp}} A</p>
+            <p><strong>Temperatura:</strong> Min {{$r.MinTemp}}°C / Max {{$r.MaxTemp}}°C</p>
+            <p><strong>Tiempo presente:</strong> {{$r.TiempoPresente}} seg</p>
+            <div class="status">
+                <span class="badge {{if gt $r.PromedioAmp $.Threshold}}on{{else}}off{{end}}">Luces: {{if gt
+                    $r.PromedioAmp $.Threshold}}ON{{else}}OFF{{end}}</span>
+                <span class="badge {{if gt $r.MaxTemp 26.0}}on{{else}}off{{end}}">Aire: {{if gt $r.MaxTemp
+                    26.0}}ON{{else}}OFF{{end}}</span>
+            </div>
+        </div>
         {{end}}
     </div>
-    {{range $oficina, $hist := .History}}
-        <h2>Oficina {{$oficina}}</h2>
-        <p>Consumo actual: {{index $.CurrentA $oficina}} A</p>
-        <p>Luces: {{if (index $.LightStatus $oficina)}}Encendidas{{else}}Apagadas{{end}}</p>
-        <p>Aire acondicionado: {{if (index $.ACStatus $oficina)}}Encendido{{else}}Apagado{{end}}</p>
-        <button onclick="turnOff('{{$oficina}}', 'ac')">Apagar Aire</button>
-        <button onclick="turnOff('{{$oficina}}', 'all')">Apagar Todo</button>
-        <canvas id="chart{{$oficina}}" width="400" height="100"></canvas>
-        <script>
-            var ctx = document.getElementById('chart{{$oficina}}').getContext('2d');
-            var chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [1,2,3,4],
-                    datasets: [{
-                        label: 'Amperios',
-                        data: {{printf "%#v" $hist}},
-                        borderColor: 'blue',
-                        fill: false
-                    }]
-                }
-            });
-        </script>
-    {{end}}
+
+    <div id="events">
+        {{range .Eventos}}
+        <div class="event-toast">
+            {{.}}
+        </div>
+        {{end}}
+    </div>
+
     <script>
-        document.getElementById('thresholdForm').onsubmit = function(e) {
-            e.preventDefault();
-            fetch('/set-threshold', {
-                method: 'POST',
-                body: JSON.stringify({threshold: parseFloat(this.threshold.value)}),
-                headers: {'Content-Type': 'application/json'}
-            }).then(() => location.reload());
-        };
-        function turnOff(sector, device) {
-            fetch('/turn-off', {
-                method: 'POST',
-                body: JSON.stringify({sector: sector, device: device}),
-                headers: {'Content-Type': 'application/json'}
-            }).then(() => alert('Comando enviado para apagar ' + device + ' en oficina ' + sector));
+        const chartContainer = document.getElementById('chartContainer');
+        const charts = {}; // Mapa oficina -> Chart instance
+
+        function createChartCanvas(sector) {
+            const wrapper = document.createElement('div');
+            wrapper.style.flex = '1 1 300px';
+            wrapper.style.minWidth = '300px';
+            wrapper.style.maxWidth = '400px';
+            wrapper.style.background = 'white';
+            wrapper.style.padding = '10px';
+            wrapper.style.borderRadius = '10px';
+            wrapper.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+            wrapper.style.marginBottom = '20px';
+
+            const title = document.createElement('h3');
+            title.textContent = `Consumo Oficina ${sector}`;
+            wrapper.appendChild(title);
+
+            const canvas = document.createElement('canvas');
+            canvas.id = `chart-${sector}`;
+            canvas.height = 150;
+            wrapper.appendChild(canvas);
+
+            chartContainer.appendChild(wrapper);
+
+            return canvas;
         }
+
+        function createOrUpdateChart(sector, newValue) {
+            if (!charts[sector]) {
+                // Crear nuevo chart
+                const canvas = createChartCanvas(sector);
+                const ctx = canvas.getContext('2d');
+                const data = {
+                    labels: [],
+                    datasets: [{
+                        label: 'Amperios (A)',
+                        data: [],
+                        borderColor: 'blue',
+                        fill: false,
+                        tension: 0.1
+                    }]
+                };
+                const config = {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        animation: false,
+                        responsive: true,
+                        scales: {
+                            x: { title: { display: true, text: 'Tiempo' } },
+                            y: { title: { display: true, text: 'Amperios' } }
+                        }
+                    }
+                };
+                charts[sector] = new Chart(ctx, config);
+            }
+
+            const chart = charts[sector];
+            const now = new Date();
+            const label = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0') + ":" + now.getSeconds().toString().padStart(2, '0');
+
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(newValue);
+
+            if (chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            chart.update();
+        }
+
+        // WebSocket para recibir datos en tiempo real
+        const socket = new WebSocket("ws://" + window.location.host + "/ws");
+
+        socket.onmessage = function (event) {
+
+            const data = JSON.parse(event.data);
+            console.log('Datos WS recibidos:', data);
+
+            // Actualizar gráficos para cada oficina
+            const resumenes = data.resumenes;
+            for (const [sector, r] of Object.entries(resumenes)) {
+                createOrUpdateChart(sector, r.promedio_amp);
+            }
+
+            // Actualizar tarjetas
+            const container = document.querySelector('.container');
+            container.innerHTML = '';
+            for (const [sector, r] of Object.entries(resumenes)) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+          <h2>Oficina ${sector}</h2>
+          <p><strong>Último registro:</strong> ${new Date(r.timestamp * 1000).toLocaleString()}</p>
+          <p><strong>Consumo promedio:</strong> ${r.promedio_amp.toFixed(2)} A</p>
+          <p><strong>Temperatura:</strong> Min ${r.min_temp}°C / Max ${r.max_temp}°C</p>
+          <p><strong>Tiempo presente:</strong> ${r.tiempo_presente} seg</p>
+          <div class="status">
+            <span class="badge ${r.promedio_amp > 3.0 ? 'on' : 'off'}">Luces: ${r.promedio_amp > 3.0 ? 'ON' : 'OFF'}</span>
+            <span class="badge ${r.max_temp > 25.0 ? 'on' : 'off'}">Aire: ${r.max_temp > 25.0 ? 'ON' : 'OFF'}</span>
+          </div>
+        `;
+                container.appendChild(card);
+            }
+
+            // Mostrar eventos nuevos
+            const eventsDiv = document.getElementById('events');
+            if (data.eventos && data.eventos.length > 0) {
+                for (const ev of data.eventos) {
+                    const e = document.createElement('div');
+                    e.classList.add('event-toast');
+                    const t = new Date(ev.timestamp * 1000).toLocaleString();
+                    e.textContent = `[${t}] ${ev.sector} - ${ev.motivo}`;
+                    eventsDiv.prepend(e);
+
+                    // Quitar evento después de 5 segundos
+                    setTimeout(() => {
+                        e.remove();
+                    }, 5000);
+                }
+            }
+        };
+
+        socket.onerror = function (error) {
+            console.error('WebSocket error:', error);
+        };
+
+        socket.onclose = function () {
+            console.warn('WebSocket cerrado');
+        };
     </script>
+
 </body>
+
 </html>

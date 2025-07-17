@@ -9,59 +9,197 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-type SensorData struct {
-	Sector      string  `json:"sector"`
-	Timestamp   int64   `json:"timestamp"`
-	Presence    bool    `json:"presence"`
-	CurrentA    float64 `json:"current_a"`
-	Temperature float64 `json:"temperature"`
+// DatosSensor representa la estructura de los datos simulados por un sensor
+type DatosSensor struct {
+	Sector      string  `json:"sector"`      // Sector de la oficina
+	TiempoUnix  int64   `json:"timestamp"`   // Tiempo en formato UNIX
+	Presencia   bool    `json:"presencia"`   // Si hay o no personas presentes
+	CorrienteA  float64 `json:"corriente_a"` // Corriente eléctrica en amperios
+	Temperatura float64 `json:"temperatura"` // Temperatura en grados Celsius
 }
 
-func randomBool(p float64) bool {
-	return rand.Float64() < p
+// Constantes que controlan la simulación
+const (
+	temperaturaMinBase      = 22.0 // Temperatura mínima base
+	temperaturaMaxBase      = 26.0 // Temperatura máxima base
+	variacionMaxTemperatura = 0.4  // Variación aleatoria por ciclo
+	horaInicioPresencia     = 1    // Hora laboral mínima
+	horaFinPresencia        = 4    // Hora laboral máxima
+	umbralAire              = 25.0 // Umbral de temperatura para encender aire
+	consumoLuces            = 3    // Corriente que consumen las luces
+	consumoAire             = 10   // Corriente que consume el aire acondicionado
+
+	probabilidadCorte = 0.005  // Probabilidad de corte de energía
+	duracionMinCorte  = 2 * 60 // Mínima duración del corte en segundos
+	duracionMaxCorte  = 5 * 60 // Máxima duración del corte en segundos
+)
+
+// Variables de estado por sector
+var (
+	ultimaTemperatura = make(map[string]float64) // Guarda la última temperatura simulada por sector
+	cortesEnergia     = make(map[string]int64)   // Marca cuándo termina el corte en un sector
+)
+
+// EsHorarioLaboral retorna true si la hora actual está dentro del horario laboral
+func EsHorarioLaboral(t time.Time) bool {
+	dia := t.Weekday()
+	hora := t.Hour()
+	return dia >= time.Monday && dia <= time.Friday &&
+		hora >= horaInicioPresencia && hora < horaFinPresencia
 }
 
-func randomFloat(min, max float64) float64 {
-	return min + rand.Float64()*(max-min)
+// DetectarPresencia simula detección de personas en función de la hora
+func DetectarPresencia(t time.Time) bool {
+	if !EsHorarioLaboral(t) {
+		return false
+	}
+	return rand.Float64() < 0.8 // 80% de probabilidad
 }
 
-func simulateAndPublish(client mqtt.Client, sector string) {
-	data := SensorData{
-		Sector:      sector,
-		Timestamp:   time.Now().Unix(),
-		Presence:    randomBool(0.7),
-		CurrentA:    randomFloat(0.5, 5.0),
-		Temperature: randomFloat(20.0, 28.0),
+// CalcularSiguienteTemperatura genera una nueva temperatura con una variación leve
+func CalcularSiguienteTemperatura(prev float64) float64 {
+	delta := (rand.Float64() * 2 * variacionMaxTemperatura) - variacionMaxTemperatura // Genera un cambio aleatorio entre -0.4 y +0.4 grados
+	temp := prev + delta
+	if temp < 20.0 {
+		temp = 20.0
+	} else if temp > 30.0 {
+		temp = 30.0
+	}
+	return temp
+}
+
+// CalcularCorriente genera un valor de corriente eléctrica en función de la presencia y temperatura
+func CalcularCorriente(presencia bool, temperatura float64) float64 {
+	// Consumo pasivo aleatorio (equipos sin uso activo)
+	pasivoMin := 0.5
+	pasivoMax := 3.0
+	base := pasivoMin + rand.Float64()*(pasivoMax-pasivoMin) // Consumo pasivo entre 0.5 y 3 A
+
+	if presencia {
+		base += consumoLuces
+		if temperatura >= umbralAire {
+			base += consumoAire
+		}
+
+		// Consumo activo aleatorio (equipos en uso)
+		activoMin := 1.0
+		activoMax := 7.0
+		base += activoMin + rand.Float64()*(activoMax-activoMin) // Consumo activo entre 1 y 7 A
 	}
 
-	payload, _ := json.Marshal(data)
-	topic := fmt.Sprintf("office/%s/sensors", sector)
-
-	token := client.Publish(topic, 0, false, payload)
-	token.Wait()
-
-	fmt.Printf("[PUBLISH] %s -> %s\n", topic, payload)
+	return base
 }
 
+// HayCorteDeEnergia retorna true si el sector está actualmente sin energía
+func HayCorteDeEnergia(sector string, ahora int64) bool {
+	fin, enCorte := cortesEnergia[sector]
+	return enCorte && ahora <= fin
+}
+
+// PosibleCorteDeEnergia decide aleatoriamente si se produce un corte en un sector
+func PosibleCorteDeEnergia(sector string, ahora int64) {
+	if _, enCorte := cortesEnergia[sector]; enCorte {
+		return // Ya está en corte
+	}
+
+	if rand.Float64() < probabilidadCorte {
+		duracion := int64(rand.Intn(duracionMaxCorte-duracionMinCorte+1) + duracionMinCorte) // Duración aleatoria del corte
+		cortesEnergia[sector] = ahora + duracion
+		fmt.Printf("[CORTE] Sector %s: Corte de energía hasta %d\n", sector, cortesEnergia[sector])
+	}
+}
+
+// SimularYPublicar genera datos simulados y los publica por MQTT
+func SimularYPublicar(cliente mqtt.Client, sector string) {
+	ahora := time.Now()
+	timestamp := ahora.Unix()
+
+	// Ver si hay un nuevo corte
+	PosibleCorteDeEnergia(sector, timestamp)
+	sinEnergia := HayCorteDeEnergia(sector, timestamp)
+
+	// Variables simuladas
+	presencia := false
+	corriente := 0.0
+
+	if !sinEnergia {
+		presencia = DetectarPresencia(ahora)
+	}
+
+	tempAnterior, existe := ultimaTemperatura[sector]
+	if !existe {
+		tempAnterior = rand.Float64()*(temperaturaMaxBase-temperaturaMinBase) + temperaturaMinBase // Inicializa con un valor aleatorio
+	}
+	temperatura := CalcularSiguienteTemperatura(tempAnterior)
+	ultimaTemperatura[sector] = temperatura
+
+	if !sinEnergia {
+		corriente = CalcularCorriente(presencia, temperatura)
+	}
+
+	// Construye el mensaje
+	datos := DatosSensor{
+		Sector:      sector,
+		TiempoUnix:  timestamp,
+		Presencia:   presencia,
+		CorrienteA:  corriente,
+		Temperatura: temperatura,
+	}
+
+	// Publica en el tópico MQTT
+	payload, _ := json.Marshal(datos)
+	topico := fmt.Sprintf("office/%s/sensors", sector)
+	token := cliente.Publish(topico, 0, false, payload)
+	token.Wait()
+
+	fmt.Printf("[PUBLICADO] %s -> %s\n", topico, payload)
+}
+
+// Función principal
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano()) // Inicializa generador de números aleatorios
 
-	opts := mqtt.NewClientOptions().
+	// Configura cliente MQTT
+	opciones := mqtt.NewClientOptions().
 		AddBroker("tcp://localhost:1883").
-		SetClientID("sensor-publisher")
+		SetClientID("publicador-sensores")
 
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
+	cliente := mqtt.NewClient(opciones)
+	if token := cliente.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
 
-	sectors := []string{"A", "B", "C"}
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
+	// Sectores simulados
+	sectores := []string{"A", "B", "C"}
 
-	for range ticker.C {
-		for _, s := range sectors {
-			simulateAndPublish(client, s)
+	// Ejecutar simulación cada 10 segundos
+	temporizador := time.NewTicker(10 * time.Second)
+	defer temporizador.Stop()
+
+	for range temporizador.C {
+		for _, s := range sectores {
+			SimularYPublicar(cliente, s)
 		}
 	}
 }
+
+/*
+Este archivo simula sensores que publican datos a través del protocolo MQTT a un broker local, como si fuera un sistema de monitoreo de consumo eléctrico por sectores en una oficina.
+
+¿Qué hace todo el programa?
+Cada 10 segundos:
+
+- Simula datos de sensores para tres sectores.
+- Publica los datos vía MQTT a un topic del estilo office/A/sensors.
+- Los datos incluyen presencia, corriente y temperatura.
+- Filtra la información localmente en el borde (edge).
+- Detecta eventos relevantes para enviarlos a Firebase, como:
+  - Encendido o apagado de luces.
+  - Encendido o apagado del aire acondicionado.
+  - Consumo anómalo de corriente (más de 10 A sin presencia).
+  - Corte de energía (corriente en 0 por más de N segundos).
+  - Sensor fuera de servicio (si no publica datos por un período prolongado).
+- Solo los eventos importantes o cambios de estado se guardan en Firebase para evitar congestionar la red y minimizar el uso de recursos.
+
+Esto permite una supervisión eficiente, enviando a la nube solo información útil para el administrador.
+*/
