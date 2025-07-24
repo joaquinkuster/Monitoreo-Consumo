@@ -5,237 +5,462 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard de Consumo</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        :root {
+            --primary: #4361ee;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --dark: #212529;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+
+        * {
             margin: 0;
-            background: #f4f4f4;
-            color: #333;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        header {
-            background: #333;
-            color: #fff;
-            padding: 1rem;
-            text-align: center;
-        }
-
-        #chartContainer {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            padding: 1rem;
-            justify-content: center;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
         }
 
         .container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
             padding: 1rem;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        header {
+            background-color: white;
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 1.5rem;
+            border-radius: var(--border-radius);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .card-container {
+            max-width: 100%;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .card {
-            background: white;
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .card p {
+            margin-bottom: 0.5rem;
+            color: var(--gray);
+        }
+
+        .card .value {
+            font-weight: 500;
+            color: var(--dark);
         }
 
         .status {
-            margin-top: 0.5rem;
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.7rem;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            color: white;
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
         }
 
         .on {
-            background: green;
+            background-color: var(--success);
         }
 
         .off {
-            background: red;
+            background-color: var(--danger);
+        }
+
+        .chart-container {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
         }
 
         #events {
             position: fixed;
-            bottom: 10px;
-            right: 10px;
+            bottom: 1rem;
+            right: 1rem;
             width: 300px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
-        .event-toast {
-            background: #ffdddd;
-            padding: 0.7rem;
-            border-left: 5px solid red;
-            margin-bottom: 0.5rem;
-            border-radius: 5px;
+        .event {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 1rem;
+            font-size: 0.9rem;
+            opacity: 0;
+            transform: translateX(100%);
+            animation: slideIn 0.5s forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .event.danger {
+            border-left: 4px solid var(--danger);
+        }
+
+        .event.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .event .time {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-bottom: 0.3rem;
+        }
+
+        .event .message {
+            font-weight: 500;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(67, 97, 238, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(67, 97, 238, 0);
+            }
         }
     </style>
 </head>
 
 <body>
+
     <header>
-        <h1>Panel de Monitoreo de Consumo</h1>
+        <h1>Panel de Monitoreo de Consumo Energético</h1>
     </header>
 
-    <div id="chartContainer"></div>
-
     <div class="container">
-        {{range $sector, $r := .Resumenes}}
-        <div class="card">
-            <h2>Oficina {{$sector}}</h2>
-            <p><strong>Último registro:</strong> {{formatTimestamp $r.Timestamp}}</p>
-            <p><strong>Consumo promedio:</strong> {{$r.PromedioAmp}} A</p>
-            <p><strong>Temperatura:</strong> Min {{$r.MinTemp}}°C / Max {{$r.MaxTemp}}°C</p>
-            <p><strong>Tiempo presente:</strong> {{$r.TiempoPresente}} seg</p>
-            <div class="status">
-                <span class="badge {{if gt $r.PromedioAmp $.Threshold}}on{{else}}off{{end}}">Luces: {{if gt
-                    $r.PromedioAmp $.Threshold}}ON{{else}}OFF{{end}}</span>
-                <span class="badge {{if gt $r.MaxTemp 26.0}}on{{else}}off{{end}}">Aire: {{if gt $r.MaxTemp
-                    26.0}}ON{{else}}OFF{{end}}</span>
+        <div class="card-container">
+            {{range $sector, $r := .Resumenes}}
+            <div class="card fade-in" id="card-{{$sector}}">
+                <h2>Oficina {{$sector}}</h2>
+                <p>Último registro: <span class="value fecha_hora">{{formatearFecha $r.Timestamp}}</span></p>
+                <p>Corriente: <span class="value corriente">{{$r.CorrienteA}}</span> A</p>
+                <p>Consumo promedio: <span class="value consumo">{{$r.ConsumoKvh}}</span> Kvh</p>
+                <p>Consumo total: <span class="value consumo_total">{{$r.ConsumoTotalKvh}}</span> Kvh</p>
+                <p>Temperatura: Min <span class="value min_temp">{{$r.MinTemp}}</span>°C / Max <span
+                        class="value max_temp">{{$r.MaxTemp}}</span>°C</p>
+                <p>Tiempo presente: <span class="value tiempo_presente">{{$r.TiempoPresente}}</span> seg</p>
+                <p>Estimación de consumo: $<span class="value monto_estimado">{{$r.MontoEstimado}}</span></p>
+                <p>Estimación de consumo total: $<span class="value monto_total">{{$r.MontoTotal}}</span></p>
+                <div class="status">
+                    <div class="status-item">
+                        <label>
+                            <input type="checkbox" onchange="toggleDispositivo('{{ $sector }}', 'luces', this.checked)"
+                                {{if index (index $.Estados $sector) "luces"}}checked{{end}}>
+                            Luces
+                        </label>
+                    </div>
+                    <div class="status-item">
+                        <label>
+                            <input type="checkbox" onchange="toggleDispositivo('{{ $sector }}', 'aire', this.checked)"
+                                {{if index (index $.Estados $sector) "aire"}}checked{{end}}>
+                            Aire Acondicionado
+                        </label>
+                    </div>
+                </div>
             </div>
+            {{end}}
         </div>
-        {{end}}
+
+        <div class="chart-container">
+
+            <h2 class="chart-title">Consumo de Energía (Kvh) en Tiempo Real</h2>
+            <div id="chartContainer"></div>
+        </div>
     </div>
 
     <div id="events">
         {{range .Eventos}}
-        <div class="event-toast">
-            {{.}}
+        <div
+            class="event {{if eq .ID 1}}success{{else if eq .ID 2}}danger{{else if eq .ID 3}}success{{else}}danger{{end}}">
+            <div class="time">{{formatearFecha .Timestamp}}</div>
+            <div class="message">{{.Sector}} - {{.Motivo}} ({{.Detalle}})</div>
         </div>
         {{end}}
     </div>
 
-    <script>
-        const chartContainer = document.getElementById('chartContainer');
-        const charts = {}; // Mapa oficina -> Chart instance
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.min.js"></script>
 
-        function createChartCanvas(sector) {
-            const wrapper = document.createElement('div');
-            wrapper.style.flex = '1 1 300px';
-            wrapper.style.minWidth = '300px';
-            wrapper.style.maxWidth = '400px';
-            wrapper.style.background = 'white';
-            wrapper.style.padding = '10px';
-            wrapper.style.borderRadius = '10px';
-            wrapper.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-            wrapper.style.marginBottom = '20px';
+    <script>
+        // Configuración inicial
+        const chartContainer = document.getElementById('chartContainer');
+        const charts = {};
+
+        function createChart(sector) {
+            const div = document.createElement('div');
+            div.style.marginBottom = '2rem';
 
             const title = document.createElement('h3');
-            title.textContent = `Consumo Oficina ${sector}`;
-            wrapper.appendChild(title);
+            title.textContent = `Oficina ${sector}`;
+            title.style.color = '#4361ee';
+            title.style.marginBottom = '0.5rem';
+            div.appendChild(title);
 
             const canvas = document.createElement('canvas');
-            canvas.id = `chart-${sector}`;
-            canvas.height = 150;
-            wrapper.appendChild(canvas);
+            canvas.width = 600;
+            canvas.height = 200;
+            div.appendChild(canvas);
 
-            chartContainer.appendChild(wrapper);
+            chartContainer.appendChild(div);
 
-            return canvas;
+            const timeSeries = new TimeSeries();
+
+            const smoothie = new SmoothieChart({
+                millisPerPixel: 50,
+                interpolation: 'bezier',
+                grid: {
+                    strokeStyle: 'rgba(0,0,0,0.05)',
+                    fillStyle: 'transparent',
+                    verticalSections: 4,
+                    millisPerLine: 1000
+                },
+                labels: { fillStyle: '#6c757d' },
+                maxValueScale: 1.2,
+                minValueScale: 1.2
+            });
+
+            smoothie.addTimeSeries(timeSeries, {
+                strokeStyle: '#4361ee',
+                fillStyle: 'rgba(67, 97, 238, 0.1)',
+                lineWidth: 2
+            });
+
+            smoothie.streamTo(canvas, 500);
+
+            charts[sector] = { smoothie, timeSeries };
         }
 
-        function createOrUpdateChart(sector, newValue) {
+        function updateChart(sector, value) {
             if (!charts[sector]) {
-                // Crear nuevo chart
-                const canvas = createChartCanvas(sector);
-                const ctx = canvas.getContext('2d');
-                const data = {
-                    labels: [],
-                    datasets: [{
-                        label: 'Amperios (A)',
-                        data: [],
-                        borderColor: 'blue',
-                        fill: false,
-                        tension: 0.1
-                    }]
-                };
-                const config = {
-                    type: 'line',
-                    data: data,
-                    options: {
-                        animation: false,
-                        responsive: true,
-                        scales: {
-                            x: { title: { display: true, text: 'Tiempo' } },
-                            y: { title: { display: true, text: 'Amperios' } }
-                        }
-                    }
-                };
-                charts[sector] = new Chart(ctx, config);
+                createChart(sector);
             }
 
-            const chart = charts[sector];
-            const now = new Date();
-            const label = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0') + ":" + now.getSeconds().toString().padStart(2, '0');
-
-            chart.data.labels.push(label);
-            chart.data.datasets[0].data.push(newValue);
-
-            if (chart.data.labels.length > 20) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-            chart.update();
+            const { timeSeries } = charts[sector];
+            timeSeries.append(new Date().getTime(), value);
         }
 
-        // WebSocket para recibir datos en tiempo real
+        function toggleDispositivo(sector, dispositivo, estado) {
+            const mensaje = {
+                sector: sector,
+                dispositivo: dispositivo,
+                estado: estado
+            };
+            const ws = new WebSocket("ws://" + window.location.host + "/control");
+            ws.onopen = () => ws.send(JSON.stringify(mensaje));
+            ws.onerror = err => console.error("WebSocket control error:", err);
+        }
+
+        // Mostrar notificación de evento
+        function showEvent(event) {
+            const eventsContainer = document.getElementById('events');
+            const eventElement = document.createElement('div');
+
+            let eventClass = 'warning';
+            if (event.id === 1 || event.id === 3) eventClass = 'success';
+            if (event.id === 2 || event.id === 4) eventClass = 'danger';
+
+            const time = new Date(event.timestamp * 1000).toLocaleTimeString();
+
+            eventElement.className = `event ${eventClass}`;
+            eventElement.innerHTML = `
+                <div class="time">${time}</div>
+                <div class="message">${event.sector} - ${event.motivo} (${event.detalle})</div>
+            `;
+
+            eventsContainer.prepend(eventElement);
+
+            // Eliminar después de 2 segundo
+            setTimeout(() => {
+                anime({
+                    targets: eventElement,
+                    opacity: 0,
+                    height: 0,
+                    marginBottom: 0,
+                    padding: 0,
+                    duration: 200,
+                    easing: 'easeOutExpo',
+                    complete: () => eventElement.remove()
+                });
+            }, 5000);
+        }
+
+        // Desaparecer automáticamente eventos cargados inicialmente
+        document.querySelectorAll('#events .event').forEach(eventElement => {
+            setTimeout(() => {
+                anime({
+                    targets: eventElement,
+                    opacity: 0,
+                    height: 0,
+                    marginBottom: 0,
+                    padding: 0,
+                    duration: 200,
+                    easing: 'easeOutExpo',
+                    complete: () => eventElement.remove()
+                });
+            }, 5000); // mismo tiempo que los eventos en tiempo real
+        });
+
+        // Actualizar tarjeta de sector con animación
+        function updateCard(sector, data) {
+            let card = document.getElementById(`card-${sector}`);
+
+            if (!card) {
+                // Si la tarjeta no existe, crear una nueva
+                const grid = document.querySelector('.grid');
+                card = document.createElement('div');
+                card.className = 'card fade-in';
+                card.id = `card-${sector}`;
+                grid.appendChild(card);
+
+                // Animación de entrada
+                anime({
+                    targets: card,
+                    opacity: [0, 1],
+                    translateY: [20, 0],
+                    duration: 600,
+                    easing: 'easeOutExpo'
+                });
+            }
+
+            // Actualizar contenido
+            const time = new Date(data.timestamp * 1000).toLocaleString();
+            card.querySelector('.fecha_hora').textContent = time;
+            card.querySelector('.corriente').textContent = `${data.corriente_a}`;
+            card.querySelector('.consumo').textContent = `${data.consumo_kvh}`;
+            card.querySelector('.consumo_total').textContent = `${data.consumo_total_kvh}`;
+            card.querySelector('.min_temp').textContent = `${data.min_temp}`;
+            card.querySelector('.max_temp').textContent = `${data.max_temp}`;
+            card.querySelector('.tiempo_presente').textContent = `${data.tiempo_presente}`;
+            card.querySelector('.monto_estimado').textContent = `${data.monto_estimado}`;
+            card.querySelector('.monto_total').textContent = `${data.monto_total}`;
+
+            // Efecto de actualización
+            anime({
+                targets: card,
+                backgroundColor: ['#f8f9fa', '#ffffff'],
+                duration: 800,
+                easing: 'easeOutExpo'
+            });
+        }
+
+        // Conexión WebSocket
         const socket = new WebSocket("ws://" + window.location.host + "/ws");
 
         socket.onmessage = function (event) {
-
             const data = JSON.parse(event.data);
-            console.log('Datos WS recibidos:', data);
 
-            // Actualizar gráficos para cada oficina
-            const resumenes = data.resumenes;
-            for (const [sector, r] of Object.entries(resumenes)) {
-                createOrUpdateChart(sector, r.promedio_amp);
+            // Actualizar gráficos
+            for (const [sector, resumen] of Object.entries(data.resumenes)) {
+                updateChart(sector, resumen.consumo_kvh);
+                updateCard(sector, resumen);
             }
 
-            // Actualizar tarjetas
-            const container = document.querySelector('.container');
-            container.innerHTML = '';
-            for (const [sector, r] of Object.entries(resumenes)) {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-          <h2>Oficina ${sector}</h2>
-          <p><strong>Último registro:</strong> ${new Date(r.timestamp * 1000).toLocaleString()}</p>
-          <p><strong>Consumo promedio:</strong> ${r.promedio_amp.toFixed(2)} A</p>
-          <p><strong>Temperatura:</strong> Min ${r.min_temp}°C / Max ${r.max_temp}°C</p>
-          <p><strong>Tiempo presente:</strong> ${r.tiempo_presente} seg</p>
-          <div class="status">
-            <span class="badge ${r.promedio_amp > 3.0 ? 'on' : 'off'}">Luces: ${r.promedio_amp > 3.0 ? 'ON' : 'OFF'}</span>
-            <span class="badge ${r.max_temp > 25.0 ? 'on' : 'off'}">Aire: ${r.max_temp > 25.0 ? 'ON' : 'OFF'}</span>
-          </div>
-        `;
-                container.appendChild(card);
-            }
-
-            // Mostrar eventos nuevos
-            const eventsDiv = document.getElementById('events');
+            // Mostrar nuevos eventos
             if (data.eventos && data.eventos.length > 0) {
-                for (const ev of data.eventos) {
-                    const e = document.createElement('div');
-                    e.classList.add('event-toast');
-                    const t = new Date(ev.timestamp * 1000).toLocaleString();
-                    e.textContent = `[${t}] ${ev.sector} - ${ev.motivo}`;
-                    eventsDiv.prepend(e);
-
-                    // Quitar evento después de 5 segundos
-                    setTimeout(() => {
-                        e.remove();
-                    }, 5000);
-                }
+                data.eventos.forEach(event => {
+                    showEvent(event);
+                });
             }
         };
 
@@ -244,10 +469,13 @@
         };
 
         socket.onclose = function () {
-            console.warn('WebSocket cerrado');
+            console.warn('WebSocket connection closed');
+            // Intentar reconectar después de 5 segundos
+            setTimeout(() => {
+                window.location.reload();
+            }, 5000);
         };
     </script>
-
 </body>
 
 </html>

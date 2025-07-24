@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/db"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"google.golang.org/api/option"
 )
 
 // DatosSensor representa la estructura de los datos simulados por un sensor
@@ -18,27 +23,79 @@ type DatosSensor struct {
 	Temperatura float64 `json:"temperatura"` // Temperatura en grados Celsius
 }
 
+// Configuracion representa la configuración de un sector
+type Configuracion struct {
+	Sector              string  `json:"sector"`
+	Timestamp           int64   `json:"timestamp"`
+	UmbralTemperaturaAC float64 `json:"umbral_temperatura_ac"`
+	UmbralCorriente     float64 `json:"umbral_corriente"`
+	voltaje             float64 `json:"voltaje"`
+	costoKwh            float64 `json:"costo_kwh"`
+	horaInicioPresencia int     `json:"hora_inicio_presencia"`
+	horaFinPresencia    int     `json:"hora_fin_presencia"`
+}
+
+// Comando representa un comando enviado desde el dashboard
+type Comando struct {
+	Sector      string `json:"sector"`
+	Timestamp   int64  `json:"timestamp"`
+	Dispositivo string `json:"dispositivo"`
+	Estado      bool   `json:"estado"`
+}
+
 // Constantes que controlan la simulación
 const (
-	temperaturaMinBase      = 22.0 // Temperatura mínima base
-	temperaturaMaxBase      = 26.0 // Temperatura máxima base
-	variacionMaxTemperatura = 0.4  // Variación aleatoria por ciclo
-	horaInicioPresencia     = 1    // Hora laboral mínima
-	horaFinPresencia        = 4    // Hora laboral máxima
-	umbralAire              = 25.0 // Umbral de temperatura para encender aire
-	consumoLuces            = 3    // Corriente que consumen las luces
-	consumoAire             = 10   // Corriente que consume el aire acondicionado
-
-	probabilidadCorte = 0.005  // Probabilidad de corte de energía
-	duracionMinCorte  = 2 * 60 // Mínima duración del corte en segundos
-	duracionMaxCorte  = 5 * 60 // Máxima duración del corte en segundos
+	temperaturaMinBase      = 22.0   // Temperatura mínima base
+	temperaturaMaxBase      = 26.0   // Temperatura máxima base
+	variacionMaxTemperatura = 0.4    // Variación aleatoria por ciclo
+	horaInicioPresencia     = 8      // Hora laboral mínima
+	horaFinPresencia        = 20     // Hora laboral máxima
+	umbralAire              = 25.0   // Umbral de temperatura para encender aire
+	consumoLuces            = 3      // Corriente que consumen las luces
+	consumoAire             = 10     // Corriente que consume el aire acondicionado
+	probabilidadCorte       = 0.005  // Probabilidad de corte de energía
+	duracionMinCorte        = 2 * 60 // Mínima duración del corte en segundos
+	duracionMaxCorte        = 5 * 60 // Máxima duración del corte en segundos
 )
 
 // Variables de estado por sector
 var (
-	ultimaTemperatura = make(map[string]float64) // Guarda la última temperatura simulada por sector
-	cortesEnergia     = make(map[string]int64)   // Marca cuándo termina el corte en un sector
+	ultimaTemperatura   = make(map[string]float64)         // Guarda la última temperatura simulada por sector
+	cortesEnergia       = make(map[string]int64)           // Marca cuándo termina el corte en un sector
+	estadosDispositivos = make(map[string]map[string]bool) // sector -> dispositivo -> estado
+	clienteFirebase     *db.Client
 )
+
+// obtenerEstadosDesdeFirebase obtiene el estado de los dispositivos desde Firebase
+func obtenerEstadosDesdeFirebase(sector string) map[string]bool {
+	ctx := context.Background()
+	var estados map[string]bool
+
+	err := clienteFirebase.NewRef(fmt.Sprintf("dispositivos/%s", sector)).Get(ctx, &estados)
+	if err != nil {
+		fmt.Printf("Error obteniendo estados de dispositivos para sector %s: %v\n", sector, err)
+		return map[string]bool{
+			"aire":  true,
+			"luces": true,
+		}
+	}
+
+	return estados
+}
+
+// actualizarEstadosPeriodicamente consulta Firebase cada 5 segundos
+func actualizarEstadosPeriodicamente(sectores []string) {
+	ticker := time.NewTicker(5 * time.Second) // frecuencia de consulta
+	defer ticker.Stop()
+
+	for range ticker.C {
+		for _, sector := range sectores {
+			estados := obtenerEstadosDesdeFirebase(sector)
+			estadosDispositivos[sector] = estados
+			fmt.Printf("[DISPOSITIVO] Estado actualizado desde Firebase para sector %s: %+v\n", sector, estados)
+		}
+	}
+}
 
 // EsHorarioLaboral retorna true si la hora actual está dentro del horario laboral
 func EsHorarioLaboral(t time.Time) bool {
@@ -53,12 +110,13 @@ func DetectarPresencia(t time.Time) bool {
 	if !EsHorarioLaboral(t) {
 		return false
 	}
-	return rand.Float64() < 0.8 // 80% de probabilidad
+	return rand.Float64() < 0.95 // 95% de probabilidad
 }
 
 // CalcularSiguienteTemperatura genera una nueva temperatura con una variación leve
 func CalcularSiguienteTemperatura(prev float64) float64 {
 	delta := (rand.Float64() * 2 * variacionMaxTemperatura) - variacionMaxTemperatura // Genera un cambio aleatorio entre -0.4 y +0.4 grados
+
 	temp := prev + delta
 	if temp < 20.0 {
 		temp = 20.0
@@ -69,15 +127,21 @@ func CalcularSiguienteTemperatura(prev float64) float64 {
 }
 
 // CalcularCorriente genera un valor de corriente eléctrica en función de la presencia y temperatura
-func CalcularCorriente(presencia bool, temperatura float64) float64 {
+func CalcularCorriente(sector string, presencia bool, temperatura float64) float64 {
 	// Consumo pasivo aleatorio (equipos sin uso activo)
 	pasivoMin := 0.5
 	pasivoMax := 3.0
 	base := pasivoMin + rand.Float64()*(pasivoMax-pasivoMin) // Consumo pasivo entre 0.5 y 3 A
 
+	estado := estadosDispositivos[sector]
+
 	if presencia {
-		base += consumoLuces
-		if temperatura >= umbralAire {
+
+		if estado["luces"] {
+			base += consumoLuces
+		}
+
+		if temperatura >= umbralAire && estado["aire"] {
 			base += consumoAire
 		}
 
@@ -134,7 +198,7 @@ func SimularYPublicar(cliente mqtt.Client, sector string) {
 	ultimaTemperatura[sector] = temperatura
 
 	if !sinEnergia {
-		corriente = CalcularCorriente(presencia, temperatura)
+		corriente = CalcularCorriente(sector, presencia, temperatura)
 	}
 
 	// Construye el mensaje
@@ -159,11 +223,22 @@ func SimularYPublicar(cliente mqtt.Client, sector string) {
 func main() {
 	rand.Seed(time.Now().UnixNano()) // Inicializa generador de números aleatorios
 
+	// Inicializa Firebase
+	ctx := context.Background()
+	credenciales := option.WithCredentialsFile("./credentials/monitoreo-consumo-d3933-firebase-adminsdk-fbsvc-991544dd8c.json")
+	app, err := firebase.NewApp(ctx, nil, credenciales)
+	if err != nil {
+		log.Fatalf("Error al inicializar Firebase: %v", err)
+	}
+	clienteFirebase, err = app.DatabaseWithURL(ctx, "https://monitoreo-consumo-d3933-default-rtdb.firebaseio.com/")
+	if err != nil {
+		log.Fatalf("Error al obtener cliente de base de datos: %v", err)
+	}
+
 	// Configura cliente MQTT
 	opciones := mqtt.NewClientOptions().
 		AddBroker("tcp://localhost:1883").
 		SetClientID("publicador-sensores")
-
 	cliente := mqtt.NewClient(opciones)
 	if token := cliente.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
@@ -171,6 +246,16 @@ func main() {
 
 	// Sectores simulados
 	sectores := []string{"A", "B", "C"}
+
+	// Inicializa estados de dispositivos
+	for _, sector := range sectores {
+		estadosDispositivos[sector] = map[string]bool{
+			"luces": true,
+			"aire":  true,
+		}
+	}
+
+	go actualizarEstadosPeriodicamente(sectores) // Actualiza estados desde Firebase
 
 	// Ejecutar simulación cada 10 segundos
 	temporizador := time.NewTicker(10 * time.Second)
