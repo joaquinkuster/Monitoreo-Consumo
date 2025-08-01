@@ -225,7 +225,7 @@ func main() {
 
 	// Inicializa Firebase
 	ctx := context.Background()
-	credenciales := option.WithCredentialsFile("./credentials/monitoreo-consumo-d3933-firebase-adminsdk-fbsvc-991544dd8c.json")
+	credenciales := option.WithCredentialsFile("../credentials/monitoreo-consumo-d3933-firebase-adminsdk-fbsvc-991544dd8c.json")
 	app, err := firebase.NewApp(ctx, nil, credenciales)
 	if err != nil {
 		log.Fatalf("Error al inicializar Firebase: %v", err)

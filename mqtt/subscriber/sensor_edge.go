@@ -17,16 +17,18 @@ import (
 
 // Estructura para registrar eventos relevantes
 type Evento struct {
-	Id        int64  `json:"id"`
-	Sector    string `json:"sector"`
+	//Sector    string `json:"sector"`
 	Timestamp int64  `json:"timestamp"`
 	Motivo    string `json:"motivo"`
 	Detalle   string `json:"detalle"`
+	Tipo      int64  `json:"tipo"` // 1: Éxito, 2: Error, 3: Advertencia
 }
+
+var eventos map[string][]Evento
 
 // Estructura para guardar un resumen periódico
 type Resumen struct {
-	Sector          string  `json:"sector"`
+	//Sector          string  `json:"sector"`
 	Timestamp       int64   `json:"timestamp"`
 	CorrienteA      float64 `json:"corriente_a"`
 	ConsumoKvh      float64 `json:"consumo_kvh"`
@@ -37,6 +39,8 @@ type Resumen struct {
 	MontoEstimado   float64 `json:"monto_estimado"`
 	MontoTotal      float64 `json:"monto_total"`
 }
+
+var resumenes map[string][]Resumen
 
 // Datos crudos enviados por los sensores
 type DatosSensor struct {
@@ -77,7 +81,7 @@ var (
 func main() {
 	// Inicializar Firebase
 	ctx := context.Background()
-	credenciales := option.WithCredentialsFile("./credentials/monitoreo-consumo-d3933-firebase-adminsdk-fbsvc-991544dd8c.json")
+	credenciales := option.WithCredentialsFile("../credentials/monitoreo-consumo-d3933-firebase-adminsdk-fbsvc-991544dd8c.json")
 	app, err := firebase.NewApp(ctx, nil, credenciales)
 	if err != nil {
 		log.Fatalf("Error al inicializar Firebase: %v", err)
@@ -248,14 +252,14 @@ func detectarEventos(datos DatosSensor, estado *EstadoSector) []Evento {
 	// Evento: Luces encendidas / apagadas
 	if datos.Presencia {
 		if !estadoDispositivo["luces"] && estado.LuzEncendida {
-			eventos = append(eventos, Evento{1, datos.Sector, ahora, "Luces apagadas", "Estado de luces desactivado"})
+			eventos = append(eventos, Evento{datos.Sector, ahora, "Luces apagadas", "Estado de luces desactivado", 2})
 			estado.LuzEncendida = false
 		} else if estadoDispositivo["luces"] && !estado.LuzEncendida {
-			eventos = append(eventos, Evento{1, datos.Sector, ahora, "Luces encendidas", "Detección de presencia"})
+			eventos = append(eventos, Evento{datos.Sector, ahora, "Luces encendidas", "Detección de presencia", 1})
 			estado.LuzEncendida = true
 		}
 	} else if !datos.Presencia && estado.LuzEncendida {
-		eventos = append(eventos, Evento{2, datos.Sector, ahora, "Luces apagadas", "Ausencia detectada"})
+		eventos = append(eventos, Evento{datos.Sector, ahora, "Luces apagadas", "Ausencia detectada", 2})
 		estado.LuzEncendida = false
 	}
 
@@ -263,20 +267,20 @@ func detectarEventos(datos DatosSensor, estado *EstadoSector) []Evento {
 	debePrenderAire := datos.Presencia && datos.Temperatura > umbralTemperaturaAC
 	if debePrenderAire {
 		if !estadoDispositivo["aire"] && estado.AireEncendido {
-			eventos = append(eventos, Evento{3, datos.Sector, ahora, "Aire apagado", "Estado de aire acondicionado desactivado"})
+			eventos = append(eventos, Evento{datos.Sector, ahora, "Aire apagado", "Estado de aire acondicionado desactivado", 2})
 			estado.AireEncendido = false
 		} else if estadoDispositivo["aire"] && !estado.AireEncendido {
-			eventos = append(eventos, Evento{3, datos.Sector, ahora, "Aire encendido", "Temperatura elevada con presencia"})
+			eventos = append(eventos, Evento{datos.Sector, ahora, "Aire encendido", "Temperatura elevada con presencia", 1})
 			estado.AireEncendido = true
 		}
 	} else if !debePrenderAire && estado.AireEncendido {
-		eventos = append(eventos, Evento{4, datos.Sector, ahora, "Aire apagado", "Condiciones para aire no cumplidas"})
+		eventos = append(eventos, Evento{datos.Sector, ahora, "Aire apagado", "Condiciones para aire no cumplidas", 2})
 		estado.AireEncendido = false
 	}
 
 	// Evento: Consumo anómalo
 	if !datos.Presencia && datos.CorrienteA > 10.0 {
-		eventos = append(eventos, Evento{5, datos.Sector, ahora, "Consumo anómalo", "Corriente alta sin presencia"})
+		eventos = append(eventos, Evento{datos.Sector, ahora, "Consumo anómalo", "Corriente alta sin presencia", 3})
 	}
 
 	// Evento: Corte de energía
@@ -285,7 +289,7 @@ func detectarEventos(datos DatosSensor, estado *EstadoSector) []Evento {
 			ts := datos.Timestamp
 			estado.SinCorrienteDesde = &ts
 		} else if datos.Timestamp-*estado.SinCorrienteDesde > 60 {
-			eventos = append(eventos, Evento{6, datos.Sector, ahora, "Corte de energía", fmt.Sprintf("Corriente en 0 por más de %d segundos", datos.Timestamp-*estado.SinCorrienteDesde)})
+			eventos = append(eventos, Evento{datos.Sector, ahora, "Corte de energía", fmt.Sprintf("Corriente en 0 por más de %d segundos", datos.Timestamp-*estado.SinCorrienteDesde), 3})
 			estado.SinCorrienteDesde = nil
 		}
 	} else {
@@ -296,11 +300,11 @@ func detectarEventos(datos DatosSensor, estado *EstadoSector) []Evento {
 	tiempoSinRespuesta := ahora - estado.UltimaLectura
 	if tiempoSinRespuesta > 60 && !estado.SensorFueraDeServicio {
 		eventos = append(eventos, Evento{
-			Id:        7,
 			Sector:    datos.Sector,
 			Timestamp: ahora,
 			Motivo:    "Sensor no responde",
 			Detalle:   fmt.Sprintf("No se recibieron datos en los últimos %d segundos", tiempoSinRespuesta),
+			Tipo:      2,
 		})
 		estado.SensorFueraDeServicio = true
 	} else if tiempoSinRespuesta <= 60 && estado.SensorFueraDeServicio {
@@ -311,11 +315,11 @@ func detectarEventos(datos DatosSensor, estado *EstadoSector) []Evento {
 	// Evento: Alerta de corriente
 	if datos.CorrienteA > umbralCorriente && !estado.ConsumoElevado {
 		eventos = append(eventos, Evento{
-			Id:        8,
 			Sector:    datos.Sector,
 			Timestamp: ahora,
 			Motivo:    "Alerta de corriente",
 			Detalle:   fmt.Sprintf("Consumo elevado: %.2f A", datos.CorrienteA),
+			Tipo:      3,
 		})
 		estado.ConsumoElevado = true
 	} else if datos.CorrienteA <= umbralCorriente && estado.ConsumoElevado {
