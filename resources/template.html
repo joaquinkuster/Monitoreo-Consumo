@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,6 +23,7 @@
             --header-h: 58px;
         }
 
+
         body {
             background: var(--bg);
             color: var(--text);
@@ -29,6 +31,7 @@
             margin: 0;
             min-height: 100vh;
         }
+
 
         header {
             height: var(--header-h);
@@ -39,11 +42,37 @@
             padding: 0 2rem;
             box-shadow: var(--shadow);
             letter-spacing: 1px;
+            justify-content: space-between;
+            /* Para separar botones también */
         }
+
 
         h1 {
             font-size: 1.3rem;
             font-weight: 600;
+        }
+
+        /* Botones nuevos en header */
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #2196f3;
         }
 
         .container {
@@ -52,11 +81,13 @@
             margin: 0 auto;
         }
 
+
         .sectores-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(370px, 1fr));
             gap: 2rem;
         }
+
 
         .card {
             background: var(--surface);
@@ -70,22 +101,26 @@
             min-width: 0;
         }
 
+
         .card h2 {
             margin: 0 0 .6rem 0;
             font-weight: 600;
             color: var(--primary);
         }
 
+
         .status-row {
             display: flex;
             gap: 1.5rem;
         }
+
 
         .status-item {
             display: flex;
             gap: .5rem;
             align-items: center;
         }
+
 
         .switch {
             appearance: none;
@@ -99,9 +134,11 @@
             transition: background .2s;
         }
 
+
         .switch:checked {
             background: var(--accent);
         }
+
 
         .switch::before {
             content: "";
@@ -116,9 +153,11 @@
             transition: left .2s;
         }
 
+
         .switch:checked::before {
             left: 18px;
         }
+
 
         .info-table {
             width: 100%;
@@ -127,20 +166,24 @@
             font-size: 0.98rem;
         }
 
+
         .info-table td {
             padding: 2px 0;
             color: var(--side);
         }
+
 
         .info-table .label {
             color: var(--primary);
             font-weight: 500;
         }
 
+
         .info-table .value {
             color: var(--text);
             font-weight: 600;
         }
+
 
         .graficotitle {
             font-size: 1rem;
@@ -150,11 +193,13 @@
             letter-spacing: .7px;
         }
 
+
         .chart-wrap {
             background: #f0f7ff;
             border-radius: 8px;
             padding: 1rem 1rem 0.5rem 1rem;
         }
+
 
         .events-panel {
             position: fixed;
@@ -167,6 +212,7 @@
             flex-direction: column;
             gap: 0.7rem;
         }
+
 
         .event {
             background: #fff;
@@ -182,26 +228,32 @@
             animation: slideIn .5s forwards;
         }
 
+
         .event.success {
             border-color: var(--primary);
         }
+
 
         .event.warning {
             border-color: #ffa726;
         }
 
+
         .event.danger {
             border-color: var(--danger);
         }
+
 
         .event .message {
             font-weight: 600;
         }
 
+
         .event .time {
             font-size: .92rem;
             color: var(--side);
         }
+
 
         @keyframes slideIn {
             to {
@@ -209,31 +261,110 @@
                 transform: translateX(0);
             }
 
+
             from {
                 opacity: 0;
                 transform: translateX(60%);
             }
         }
 
+
         @media (max-width: 800px) {
             .container {
                 padding: 1rem .2rem;
             }
 
+
             .sectores-grid {
                 gap: .8rem;
             }
+
 
             .card {
                 padding: 1.6rem .8rem 1rem .8rem;
             }
         }
+
+
+
+        /* =========================
+        Estilos modales
+        ========================== */
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .modal label {
+            display: block;
+            margin: 0.5rem 0 0.2rem 0;
+            font-weight: 600;
+        }
+
+        .modal input,
+        .modal select {
+            width: 100%;
+            padding: 6px 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .modal .modal-actions {
+            margin-top: 1rem;
+            text-align: right;
+        }
+
+        .modal .btn-secondary {
+            background-color: #ccc;
+            color: #333;
+            margin-right: 10px;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 0.3rem;
+        }
     </style>
 </head>
+
 
 <body>
     <header>
         <h1>Panel de Monitoreo Energético</h1>
+        <div class="header-buttons">
+            <!-- Botones para abrir modales -->
+            <button id="btnAgregarOficina" class="btn" title="Agregar oficina">Agregar Oficina</button>
+            <button id="btnConfigSistema" class="btn" title="Configuración sistema">Configurar Sistema</button>
+        </div>
     </header>
     <main>
         <div class="container">
@@ -245,10 +376,62 @@
         <div class="events-panel" id="eventsPanel"></div>
     </main>
 
+    <!-- === MODAL AGREGAR OFICINA === -->
+    <div id="modalAgregarOficina" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="modalAgregarOficinaTitle">
+        <div class="modal">
+            <h3 id="modalAgregarOficinaTitle">Agregar Oficina</h3>
+            <form id="formAgregarOficina">
+                <label for="inputNombreOficina">Nombre del Sector (único)</label>
+                <input type="text" id="inputNombreOficina" name="nombreOficina" maxlength="3" autocomplete="off"
+                    required pattern="[A-Za-z0-9]+">
+                <div id="errorNombreOficina" class="error-message" style="display:none;">Nombre inválido o ya existe.
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btnCancelarAgregarOficina">Cancelar</button>
+                    <button type="submit" class="btn">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- === MODAL CONFIGURACIÓN SISTEMA === -->
+    <div id="modalConfigSistema" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="modalConfigSistemaTitle">
+        <div class="modal">
+            <h3 id="modalConfigSistemaTitle">Configuración del Sistema</h3>
+            <form id="formConfigSistema">
+                <label for="inputHorarioInicio">Horario inicio jornada (hora: min)</label>
+                <input type="time" id="inputHorarioInicio" name="horarioInicio" required>
+
+                <label for="inputHorarioFin">Horario fin jornada (hora: min)</label>
+                <input type="time" id="inputHorarioFin" name="horarioFin" required>
+
+                <label for="inputTempAire">Temperatura para prender el aire (°C)</label>
+                <input type="number" step="0.1" id="inputTempAire" name="tempAire" min="0" max="50" required>
+
+                <label for="inputVoltaje">Voltaje (V)</label>
+                <input type="number" step="0.1" id="inputVoltaje" name="voltaje" min="0" required>
+
+                <label for="inputUmbralCorriente">Umbral corriente elevada (A)</label>
+                <input type="number" step="0.01" id="inputUmbralCorriente" name="umbralCorriente" min="0" required>
+
+                <label for="inputCostoKvh">$ Costo por kvh</label>
+                <input type="number" step="0.01" id="inputCostoKvh" name="costoKvh" min="0" required>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btnCancelarConfigSistema">Cancelar</button>
+                    <button type="submit" class="btn">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         // ==============================
         // Utils y data
         // ==============================
+
 
         // Estructuras locales
         let resumenes = {}; // sector: resumen más actual
@@ -256,12 +439,14 @@
         const charts = {}; // sector: {smoothie, ts}
         const eventosRecibidos = new Set();
 
+
         // ==============================
         // Renderizado/principal
         // ==============================
         function renderSectorCard(sector, dataResumen, dataDispositivo) {
             const grid = document.getElementById('sectoresGrid');
             let card = document.getElementById('card-' + sector);
+
 
             if (!card) {
                 // Crear nuevo
@@ -288,6 +473,7 @@
             `;
                 grid.appendChild(card);
 
+
                 // Crear smoothie y TimeSeries solo UNA vez
                 const timeSeries = new TimeSeries();
                 const smoothie = new SmoothieChart({
@@ -309,6 +495,7 @@
                 smoothie.streamTo(card.querySelector('canvas'), 700);
                 charts[sector] = { smoothie, timeSeries };
             }
+
 
             // Actualizar tabla resumen
             const tabla = card.querySelector('.info-table');
@@ -341,17 +528,20 @@
                 statusRow.appendChild(statusDiv);
             });
 
+
             // Finalmente, append de nuevo punto al gráfico
             if (dataResumen && charts[sector]) {
                 charts[sector].timeSeries.append(new Date().getTime(), dataResumen.consumo_kvh || 0);
             }
         }
 
+
         function formatearFecha(ts) {
             if (!ts) return "--";
             const d = new Date(ts * 1000);
             return d.toLocaleString("es-AR", { hour12: false });
         }
+
 
         // ==============================
         // Eventos flotantes
@@ -360,17 +550,20 @@
             if (eventosRecibidos.has(event.id + "-" + event.timestamp)) return;
             eventosRecibidos.add(event.id + "-" + event.timestamp);
 
+
             // Elementos visuales
             const eventsPanel = document.getElementById('eventsPanel');
             let tipo = 'warning';
             if (event.tipo == 1) tipo = 'success';
             if (event.tipo == 2) tipo = 'danger';
 
+
             const div = document.createElement('div');
             div.className = "event " + tipo;
             div.innerHTML = `<div class="time">${formatearFecha(event.timestamp)}</div>
-                         <div class="message">${event.sector} - ${event.motivo} (${event.detalle})</div>`;
+                             <div class="message">${event.sector} - ${event.motivo} (${event.detalle})</div>`;
             eventsPanel.prepend(div);
+
 
             setTimeout(() => {
                 anime({
@@ -386,6 +579,7 @@
             }, 4200);
         }
 
+
         // ==============================
         // Control de dispositivos
         // ==============================
@@ -399,6 +593,7 @@
             ws.onerror = err => console.error("WebSocket control error:", err);
         }
 
+
         // ==============================
         // WebSocket principal (ajusta el parsing si tu backend cambia)
         // ==============================
@@ -407,7 +602,9 @@
             let data;
             try { data = JSON.parse(event.data); } catch { return; }
 
+
             console.log("Datos recibidos por WebSocket:", data);
+
 
             // Espera: {tipo:..., data:...}
             if (data.tipo === 'resumenes') {
@@ -434,9 +631,119 @@
             setTimeout(() => window.location.reload(), 5000);
         };
 
+
         // Exponer para switches:
         window.toggleDispositivo = toggleDispositivo;
+
+        // ==============================
+        // Nuevas funcionalidades para modales
+        // ==============================
+        const btnAgregarOficina = document.getElementById('btnAgregarOficina');
+        const modalAgregarOficina = document.getElementById('modalAgregarOficina');
+        const btnCancelarAgregarOficina = document.getElementById('btnCancelarAgregarOficina');
+        const formAgregarOficina = document.getElementById('formAgregarOficina');
+        const inputNombreOficina = document.getElementById('inputNombreOficina');
+        const errorNombreOficina = document.getElementById('errorNombreOficina');
+
+        const btnConfigSistema = document.getElementById('btnConfigSistema');
+        const modalConfigSistema = document.getElementById('modalConfigSistema');
+        const btnCancelarConfigSistema = document.getElementById('btnCancelarConfigSistema');
+        const formConfigSistema = document.getElementById('formConfigSistema');
+
+        // Abrir modal Agregar Oficina
+        btnAgregarOficina.addEventListener('click', () => {
+            errorNombreOficina.style.display = 'none';
+            inputNombreOficina.value = '';
+            modalAgregarOficina.classList.add('active');
+            inputNombreOficina.focus();
+        });
+
+        // Cancelar Agregar Oficina
+        btnCancelarAgregarOficina.addEventListener('click', () => {
+            modalAgregarOficina.classList.remove('active');
+        });
+
+        // Abrir modal Configuración Sistema
+        btnConfigSistema.addEventListener('click', () => {
+            modalConfigSistema.classList.add('active');
+            // Cargar valores actuales en inputs si tienes guardados en localStorage o variables
+            cargarConfiguracionActual();
+        });
+
+        // Cancelar Configuración Sistema
+        btnCancelarConfigSistema.addEventListener('click', () => {
+            modalConfigSistema.classList.remove('active');
+        });
+
+        // Validar y agregar Oficina
+        formAgregarOficina.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nuevoSector = inputNombreOficina.value.trim();
+            if (!nuevoSector.match(/^[A-Za-z0-9]+$/)) {
+                errorNombreOficina.textContent = 'Nombre inválido: solo letras y números sin espacios.';
+                errorNombreOficina.style.display = 'block';
+                return;
+            }
+            // Verificar unicidad
+            if (Object.keys(resumenes).includes(nuevoSector) || Object.keys(dispositivos).includes(nuevoSector)) {
+                errorNombreOficina.textContent = 'El nombre del sector ya existe.';
+                errorNombreOficina.style.display = 'block';
+                return;
+            }
+            errorNombreOficina.style.display = 'none';
+            // Agregar sector localmente (puede ajustarse si hay backend)
+            resumenes[nuevoSector] = {}; // vacío al principio
+            dispositivos[nuevoSector] = { aire: false, luces: false };
+            renderSectorCard(nuevoSector, resumenes[nuevoSector], dispositivos[nuevoSector]);
+            modalAgregarOficina.classList.remove('active');
+        });
+
+        // Cargar configuración actual en modal (desde localStorage o variables)
+        function cargarConfiguracionActual() {
+            const config = JSON.parse(localStorage.getItem('configSistema')) || {};
+
+            formConfigSistema.horarioInicio.value = config.horarioInicio || '';
+            formConfigSistema.horarioFin.value = config.horarioFin || '';
+            formConfigSistema.tempAire.value = config.tempAire || '';
+            formConfigSistema.voltaje.value = config.voltaje || '';
+            formConfigSistema.umbralCorriente.value = config.umbralCorriente || '';
+            formConfigSistema.costoKvh.value = config.costoKvh || '';
+        }
+
+        // Guardar configuración
+        formConfigSistema.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const config = {
+                horarioInicio: formConfigSistema.horarioInicio.value,
+                horarioFin: formConfigSistema.horarioFin.value,
+                tempAire: parseFloat(formConfigSistema.tempAire.value),
+                voltaje: parseFloat(formConfigSistema.voltaje.value),
+                umbralCorriente: parseFloat(formConfigSistema.umbralCorriente.value),
+                costoKvh: parseFloat(formConfigSistema.costoKvh.value),
+            };
+
+            // Validar mínimos/máximos si quieres aquí
+
+            localStorage.setItem('configSistema', JSON.stringify(config));
+            alert('Configuración guardada correctamente.');
+            modalConfigSistema.classList.remove('active');
+
+            // Opcional: enviar esta config a backend vía WebSocket o API si tienes implementado
+        });
+
+        // Cerrar modales al hacer clic afuera de la caja modal
+        window.addEventListener('click', (e) => {
+            if (e.target === modalAgregarOficina) {
+                modalAgregarOficina.classList.remove('active');
+            }
+            if (e.target === modalConfigSistema) {
+                modalConfigSistema.classList.remove('active');
+            }
+        });
+
     </script>
 </body>
+
 
 </html>
