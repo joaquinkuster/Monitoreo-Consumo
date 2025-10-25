@@ -23,9 +23,9 @@ monitoreo_consumo
 
 ## Requisitos
 
-- Go 1.16 o superior
-- Un broker MQTT (ej. Mosquitto)
-- Firebase configurado con las credenciales adecuadas
+- Go 1.16 o superior.
+- Un broker MQTT (ej. Mosquitto).
+- Firebase configurado con las credenciales adecuadas.
 
 ## Instalación
 
