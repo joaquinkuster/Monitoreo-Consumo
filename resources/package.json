@@ -1,0 +1,24 @@
+{
+  "name": "monitoreo-consumo-dashboard",
+  "version": "2.0.0",
+  "description": "Dashboard inteligente para sistema de monitoreo de consumo eléctrico con análisis OLAP",
+  "main": "dashboard.js",
+  "scripts": {
+    "start": "node dashboard.js",
+    "socket": "node socket.js",
+    "dev": "concurrently \"node dashboard.js\" \"node socket.js\"",
+    "setup": "node semilla_firebase.js"
+  },
+  "dependencies": {
+    "firebase": "^9.23.0",
+    "firebase-admin": "^11.11.0",
+    "ws": "^8.14.2",
+    "chart.js": "^4.4.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "keywords": ["monitoring", "energy", "dashboard", "firebase", "websocket", "olap", "analytics"],
+  "author": "Sistema Monitoreo Consumo Inteligente",
+  "license": "MIT"
+}

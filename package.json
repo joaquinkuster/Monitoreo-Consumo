@@ -1,20 +1,18 @@
 {
   "name": "monitoreo-consumo",
   "version": "1.0.0",
-  "description": "Este proyecto implementa un sistema de monitoreo de consumo eléctrico en una oficina utilizando Go, MQTT y Firebase RTDB. El sistema está diseñado para simular sensores, filtrar datos relevantes y proporcionar un tablero de control para la visualización del consumo eléctrico.",
-  "main": "firebase_listener.js",
+  "description": "Sistema de monitoreo de consumo eléctrico",
+  "main": "dashboard.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dashboard.js",
+    "socket": "node socket.js",
+    "dev": "concurrently \"node dashboard.js\" \"node socket.js\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "axios": "^1.11.0",
-    "body-parser": "^2.2.0",
-    "express": "^5.1.0",
-    "firebase": "^12.0.0",
-    "firebase-admin": "^13.4.0",
-    "ws": "^8.18.3"
-  }
+    "firebase-admin": "^11.11.0",
+    "ws": "^8.14.2"
+  },
+  "keywords": ["monitoring", "energy", "mqtt", "firebase"],
+  "author": "Sistema Monitoreo",
+  "license": "MIT"
 }

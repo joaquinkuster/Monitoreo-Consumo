@@ -1,0 +1,215 @@
+/* Estilos para CRISP-DM y OLAP */
+.crispdm-panel {
+    background: var(--bg-glass);
+    backdrop-filter: var(--blur);
+    border: var(--border-glass);
+    border-radius: 20px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.crispdm-phase {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.phase-business { border-left: 4px solid #4361ee; }
+.phase-data { border-left: 4px solid #10b981; }
+.phase-modeling { border-left: 4px solid #f59e0b; }
+.phase-evaluation { border-left: 4px solid #8b5cf6; }
+.phase-deployment { border-left: 4px solid #ef4444; }
+
+.efficiency-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.efficiency-badge.A-plus { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+.efficiency-badge.A { background: linear-gradient(135deg, #34d399, #10b981); color: white; }
+.efficiency-badge.B { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+.efficiency-badge.C { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
+.efficiency-badge.D { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+
+.recommendation {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 12px;
+    border-left: 4px solid;
+}
+
+.recommendation.alta { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.recommendation.media { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+.recommendation.baja { border-left-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+
+.priority-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.priority-badge.alta { background: #ef4444; color: white; }
+.priority-badge.media { background: #f59e0b; color: white; }
+.priority-badge.baja { background: #10b981; color: white; }
+
+/* Estilos OLAP */
+.olap-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.dimension-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dimension-selector label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.olap-visualization {
+    height: 400px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+/* Heatmap OLAP */
+.heatmap-container {
+    display: grid;
+    gap: 2px;
+    padding: 1rem;
+}
+
+.heatmap-cell {
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.heatmap-cell:hover {
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+/* TreeMap OLAP */
+.treemap-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.treemap-node {
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* MDX Query Interface */
+.mdx-interface {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mdx-editor {
+    width: 100%;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+    resize: vertical;
+}
+
+.mdx-results {
+    margin-top: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Predictive Analytics */
+.prediction-card {
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(139, 92, 246, 0.1));
+    border: 1px solid rgba(67, 97, 238, 0.3);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.prediction-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4361ee, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.confidence-indicator {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    margin: 0.5rem 0;
+    overflow: hidden;
+}
+
+.confidence-level {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.confidence-high { background: linear-gradient(90deg, #10b981, #34d399); }
+.confidence-medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.confidence-low { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+/* Anomaly Detection */
+.anomaly-alert {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .olap-controls {
+        grid-template-columns: 1fr;
+    }
+    
+    .crispdm-panel {
+        padding: 1rem;
+    }
+    
+    .efficiency-badge {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
