@@ -10,13 +10,102 @@ class DashboardEnhanced {
         this.init();
     }
 
-    // Asegurarse de que los gráficos se inicialicen después de que el DOM esté listo
-    // En el método init(), agrega:
+    setupHelpSystem() {
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const helpNavBtns = document.querySelectorAll('.help-nav-item');
+        const helpSections = document.querySelectorAll('.help-section');
+
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.add('active');
+            this.updateHelpProgress();
+        });
+
+        helpNavBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.getAttribute('data-section');
+                this.showHelpSection(section);
+            });
+        });
+
+        // Inicializar primera sección
+        this.showHelpSection('overview');
+    }
+
+    showHelpSection(section) {
+        const helpNavBtns = document.querySelectorAll('.help-nav-item');
+        const helpSections = document.querySelectorAll('.help-section');
+
+        // Actualizar botones activos
+        helpNavBtns.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('data-section') === section) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Mostrar sección correspondiente
+        helpSections.forEach(sec => {
+            sec.classList.remove('active');
+            if (sec.id === `help-${section}`) {
+                sec.classList.add('active');
+            }
+        });
+
+        this.updateHelpProgress();
+    }
+
+    navigateHelp(direction) {
+        const sections = ['overview', 'architecture', 'dashboard', 'paradigms', 'controls', 'alerts', 'tips'];
+        const currentSection = document.querySelector('.help-nav-item.active').getAttribute('data-section');
+        let currentIndex = sections.indexOf(currentSection);
+
+        if (direction === 'next' && currentIndex < sections.length - 1) {
+            this.showHelpSection(sections[currentIndex + 1]);
+        } else if (direction === 'prev' && currentIndex > 0) {
+            this.showHelpSection(sections[currentIndex - 1]);
+        }
+    }
+
+    updateHelpProgress() {
+        const sections = ['overview', 'architecture', 'dashboard', 'paradigms', 'controls', 'alerts', 'tips'];
+        const currentSection = document.querySelector('.help-nav-item.active').getAttribute('data-section');
+        const currentIndex = sections.indexOf(currentSection) + 1;
+        const totalSections = sections.length;
+
+        // Actualizar números
+        document.getElementById('currentHelpSection').textContent = currentIndex;
+        document.getElementById('totalHelpSections').textContent = totalSections;
+
+        // Actualizar barra de progreso
+        const progress = (currentIndex / totalSections) * 100;
+        document.getElementById('helpProgress').style.width = `${progress}%`;
+
+        // Actualizar estado de botones
+        const prevBtn = document.querySelector('.prev-btn');
+        const nextBtn = document.querySelector('.next-btn');
+
+        prevBtn.disabled = currentIndex === 1;
+        nextBtn.disabled = currentIndex === totalSections;
+    }
+
+    closeHelpModal() {
+        document.getElementById('helpModal').classList.remove('active');
+        this.showToast('🎉 ¡Listo para comenzar! Explora el sistema', 'success');
+    }
+
     init() {
         this.connectWebSockets();
         this.setupEventListeners();
+        this.setupParadigmSliders();
 
-        // Inicializar navbar y footer
+        this.setupMPIImprovements();
+        this.setupOpenMPImprovements();
+        this.setupHaskellImprovements();
+        this.setupPrologImprovements();
+        this.setupComparativeImprovements();
+
+        this.setupHelpSystem();
         this.setupNavbarInteractions();
         this.setupFooter();
 
@@ -30,17 +119,82 @@ class DashboardEnhanced {
         setInterval(() => {
             this.updateAdvancedStats();
         }, 10000);
+
+        setTimeout(() => {
+            this.debugNavbar();
+        }, 2000);
     }
 
-    // Nuevos métodos para navbar y footer
     setupNavbarInteractions() {
-        // Smooth scroll para enlaces del navbar
-        document.querySelectorAll('.nav-dropdown-content a').forEach(link => {
-            link.addEventListener('click', (e) => {
+        console.log('🔧 Configurando interacciones del navbar...');
+
+        // Manejar clicks en las opciones de paradigmas
+        document.querySelectorAll('.paradigm-option').forEach(option => {
+            option.addEventListener('click', (e) => {
                 e.preventDefault();
-                const target = e.target.getAttribute('href');
-                this.showSectionInfo(target);
+                e.stopPropagation(); // Prevenir que el click se propague
+
+                const modalId = option.getAttribute('data-modal');
+                const action = option.getAttribute('data-action');
+
+                console.log(`🎯 Click en opción: ${modalId || action}`);
+
+                if (modalId) {
+                    this.openModal(modalId);
+                    this.closeAllDropdowns(); // Cerrar dropdown después de seleccionar
+                } else if (action === 'benchmark') {
+                    this.openModal('modalOpenMP');
+                    setTimeout(() => {
+                        this.benchmarkOpenMP();
+                    }, 500);
+                    this.closeAllDropdowns();
+                }
             });
+        });
+
+        // Cerrar dropdowns al hacer click fuera del navbar
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.nav-dropdown')) {
+                this.closeAllDropdowns();
+            }
+        });
+
+        console.log('✅ Navegación del navbar configurada (click)');
+    }
+
+    toggleDropdown(button) {
+        // Cerrar todos los dropdowns primero
+        this.closeAllDropdowns();
+
+        // Abrir el dropdown actual
+        const dropdown = button.nextElementSibling;
+        if (dropdown && dropdown.classList.contains('nav-dropdown-content')) {
+            dropdown.style.display = 'block';
+            button.classList.add('active');
+
+            // Rotar la flecha
+            const chevron = button.querySelector('.fa-chevron-down');
+            if (chevron) {
+                chevron.style.transform = 'rotate(180deg)';
+            }
+        }
+    }
+
+    // Cerrar todos los dropdowns
+    closeAllDropdowns() {
+        document.querySelectorAll('.nav-dropdown-content').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+
+        // Remover estado activo de todos los botones
+        document.querySelectorAll('.nav-dropbtn').forEach(button => {
+            button.classList.remove('active');
+
+            // Resetear rotación de flechas
+            const chevron = button.querySelector('.fa-chevron-down');
+            if (chevron) {
+                chevron.style.transform = 'rotate(0deg)';
+            }
         });
     }
 
@@ -1527,6 +1681,1034 @@ class DashboardEnhanced {
         const resumen = this.resumenes[oficinaId];
         const mensaje = `Oficina ${oficinaId}: ${resumen.corriente_a?.toFixed(2)}A, ${resumen.consumo_kvh?.toFixed(2)}kWh, Temp: ${resumen.min_temp?.toFixed(1)}°-${resumen.max_temp?.toFixed(1)}°C`;
         this.showToast(mensaje, 'info');
+    }
+
+    // Métodos para abrir modales
+    showMPIAnalysis() {
+        this.openModal('modalMPI');
+    }
+
+    showOpenMPAnalysis() {
+        this.openModal('modalOpenMP');
+    }
+
+    showHaskellAnalysis() {
+        this.openModal('modalHaskell');
+    }
+
+    showPrologRules() {
+        this.openModal('modalProlog');
+    }
+
+    showComparativeAnalysis() {
+        this.openModal('modalComparative');
+    }
+
+    showPerformanceBenchmark() {
+        this.openModal('modalOpenMP');
+        setTimeout(() => {
+            this.benchmarkOpenMP();
+        }, 500);
+    }
+
+    openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('active');
+            console.log(`✅ Modal ${modalId} abierto`);
+
+            const modalTitle = this.getModalTitle(modalId);
+            this.showToast(`🔬 Abriendo ${modalTitle}`, 'info');
+        } else {
+            console.error(`❌ Modal ${modalId} no encontrado`);
+            this.showToast('❌ Sección no disponible temporalmente', 'error');
+        }
+    }
+
+    closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    getModalTitle(modalId) {
+        const titles = {
+            'modalMPI': 'Procesamiento Distribuido MPI',
+            'modalOpenMP': 'Paralelización OpenMP',
+            'modalHaskell': 'Análisis Funcional Haskell',
+            'modalProlog': 'Sistema de Reglas Prolog',
+            'modalComparative': 'Análisis Comparativo'
+        };
+        return titles[modalId] || 'Paradigma';
+    }
+
+    // Configuración de sliders
+    setupParadigmSliders() {
+        // MPI Nodes
+        const mpiNodes = document.getElementById('mpiNodes');
+        const mpiNodesValue = document.getElementById('mpiNodesValue');
+        mpiNodes.addEventListener('input', () => {
+            mpiNodesValue.textContent = `${mpiNodes.value} nodos`;
+        });
+
+        // OpenMP Threads
+        const openmpThreads = document.getElementById('openmpThreads');
+        const openmpThreadsValue = document.getElementById('openmpThreadsValue');
+        openmpThreads.addEventListener('input', () => {
+            openmpThreadsValue.textContent = `${openmpThreads.value} hilos`;
+        });
+
+        // OpenMP Chunk
+        const openmpChunk = document.getElementById('openmpChunk');
+        const openmpChunkValue = document.getElementById('openmpChunkValue');
+        openmpChunk.addEventListener('input', () => {
+            openmpChunkValue.textContent = `${openmpChunk.value} elementos`;
+        });
+
+        // Haskell Purity
+        const haskellPurity = document.getElementById('haskellPurity');
+        const haskellPurityValue = document.getElementById('haskellPurityValue');
+        haskellPurity.addEventListener('input', () => {
+            const level = haskellPurity.value;
+            let levelText = 'Baja';
+            if (level >= 8) levelText = 'Alta';
+            else if (level >= 5) levelText = 'Media';
+            haskellPurityValue.textContent = `${levelText} (${level}/10)`;
+        });
+
+        // Prolog Inference
+        const prologInference = document.getElementById('prologInference');
+        const prologInferenceValue = document.getElementById('prologInferenceValue');
+        prologInference.addEventListener('input', () => {
+            const level = prologInference.value;
+            let levelText = 'Bajo';
+            if (level >= 4) levelText = 'Alto';
+            else if (level >= 2) levelText = 'Medio';
+            prologInferenceValue.textContent = `${levelText} (${level}/5)`;
+        });
+    }
+
+    setupMPIImprovements() {
+        // Configuración de algoritmos MPI
+        const mpiAlgorithmSelect = document.getElementById('mpiAlgorithm');
+        if (mpiAlgorithmSelect) {
+            mpiAlgorithmSelect.innerHTML = `
+                <option value="broadcast">Broadcast - Distribución de Datos</option>
+                <option value="scatter">Scatter/Gather - División de Carga</option>
+                <option value="reduce">Reduce - Agregación de Métricas</option>
+                <option value="efficiency" selected>Análisis de Eficiencia</option>
+                <option value="clustering">Clustering de Consumo</option>
+                <option value="prediction">Predicción de Tendencia</option>
+            `;
+        }
+
+        // Slider para tamaño de problema
+        const mpiProblemSize = document.getElementById('mpiDatasetSize');
+        const mpiProblemSizeValue = document.getElementById('mpiProblemSizeValue');
+        if (mpiProblemSize && mpiProblemSizeValue) {
+            mpiProblemSize.addEventListener('input', () => {
+                const sizes = {
+                    1000: 'Pequeño (1K puntos)',
+                    10000: 'Mediano (10K puntos)',
+                    50000: 'Grande (50K puntos)',
+                    100000: 'Muy Grande (100K puntos)',
+                    500000: 'Masivo (500K puntos)'
+                };
+                mpiProblemSizeValue.textContent = sizes[mpiProblemSize.value] || 'Personalizado';
+            });
+        }
+    }
+
+    setupOpenMPImprovements() {
+        // Estrategias de scheduling
+        const openmpScheduling = document.getElementById('openmpScheduling');
+        if (openmpScheduling) {
+            openmpScheduling.innerHTML = `
+                <option value="static">Static - Chunks Fijos</option>
+                <option value="dynamic" selected>Dynamic - Chunks Dinámicos</option>
+                <option value="guided">Guided - Chunks Decrecientes</option>
+                <option value="auto">Auto - Decisión Automática</option>
+            `;
+        }
+
+        // Configuración de regiones paralelas
+        const openmpRegions = document.getElementById('openmpRegions');
+        if (openmpRegions) {
+            openmpRegions.innerHTML = `
+                <option value="for">Parallel For - Bucles</option>
+                <option value="sections" selected>Sections - Secciones</option>
+                <option value="tasks">Tasks - Tareas</option>
+                <option value="single">Single - Ejecución Única</option>
+            `;
+        }
+    }
+
+    setupHaskellImprovements() {
+        // Transformaciones funcionales
+        const haskellTransform = document.getElementById('haskellTransform');
+        if (haskellTransform) {
+            haskellTransform.innerHTML = `
+                <option value="map">Map - Transformación</option>
+                <option value="filter">Filter - Filtrado</option>
+                <option value="fold" selected>Fold - Agregación</option>
+                <option value="scan">Scan - Acumulación</option>
+                <option value="composition">Composición - Pipeline</option>
+            `;
+        }
+
+        // Tipos de análisis de series
+        const haskellAnalysisType = document.getElementById('haskellAnalysisType');
+        if (haskellAnalysisType) {
+            haskellAnalysisType.innerHTML = `
+                <option value="trend">Tendencias</option>
+                <option value="efficiency" selected>Eficiencia</option>
+                <option value="anomaly">Detección de Anomalías</option>
+                <option value="optimization">Optimización</option>
+            `;
+        }
+    }
+
+    setupPrologImprovements() {
+        // Tipos de base de conocimiento
+        const prologKnowledgeBase = document.getElementById('prologKnowledgeBase');
+        if (prologKnowledgeBase) {
+            prologKnowledgeBase.innerHTML = `
+                <option value="efficiency">Reglas de Eficiencia</option>
+                <option value="optimization" selected>Reglas de Optimización</option>
+                <option value="anomaly">Detección de Anomalías</option>
+                <option value="recommendation">Sistema de Recomendaciones</option>
+                <option value="planning">Planificación Automática</option>
+                <option value="seasonal">Patrones Estacionales</option>
+            `;
+        }
+
+        // Niveles de inferencia mejorados
+        const prologInference = document.getElementById('prologInference');
+        const prologInferenceValue = document.getElementById('prologInferenceValue');
+        if (prologInference && prologInferenceValue) {
+            prologInference.addEventListener('input', () => {
+                const levels = {
+                    1: 'Básico (1/5)',
+                    2: 'Simple (2/5)',
+                    3: 'Intermedio (3/5)',
+                    4: 'Avanzado (4/5)',
+                    5: 'Completo (5/5)'
+                };
+                prologInferenceValue.textContent = levels[prologInference.value] || 'Personalizado';
+            });
+        }
+    }
+
+    setupComparativeImprovements() {
+        // Métricas de evaluación
+        const comparativeMetric = document.getElementById('comparativeMetric');
+        if (comparativeMetric) {
+            comparativeMetric.innerHTML = `
+                <option value="performance">Rendimiento</option>
+                <option value="efficiency" selected>Eficiencia</option>
+                <option value="accuracy">Precisión</option>
+                <option value="scalability">Escalabilidad</option>
+                <option value="memory">Uso de Memoria</option>
+                <option value="implementation">Facilidad Implementación</option>
+            `;
+        }
+
+        // Escenarios de prueba
+        const comparativeScenario = document.getElementById('comparativeScenario');
+        if (comparativeScenario) {
+            comparativeScenario.innerHTML = `
+                <option value="realtime">Tiempo Real</option>
+                <option value="historical" selected>Datos Históricos</option>
+                <option value="large">Dataset Grande</option>
+                <option value="complex">Operaciones Complejas</option>
+            `;
+        }
+    }
+
+    // Simulación MPI
+    runMPISimulation() {
+        const nodes = parseInt(document.getElementById('mpiNodes').value);
+        const datasetSize = parseInt(document.getElementById('mpiDatasetSize').value);
+        const algorithm = document.getElementById('mpiAlgorithm').value;
+        const problemSize = document.getElementById('mpiProblemSize')?.value || datasetSize;
+
+        const resultsDiv = document.getElementById('mpiResults');
+        resultsDiv.innerHTML = `
+            <div class="simulation-header">
+                <h4>🔄 Simulación MPI Avanzada</h4>
+                <p>Procesando ${problemSize.toLocaleString()} puntos con ${nodes} nodos - Algoritmo: ${this.getMPIAlgorithmName(algorithm)}</p>
+            </div>
+            <div class="mpi-load-balancing" id="mpiLoadBalancing"></div>
+            <div class="mpi-nodes-container" id="mpiNodesContainer"></div>
+            <div class="performance-metrics" id="mpiMetrics"></div>
+            <div class="mpi-communication" id="mpiCommunication"></div>
+        `;
+
+        this.simulateMPILoadBalancing(nodes, problemSize, algorithm);
+    }
+
+    simulateMPIProcessing(nodes, datasetSize, algorithm) {
+        const chunkSize = Math.ceil(datasetSize / nodes);
+        let completedNodes = 0;
+
+        const nodeElements = document.querySelectorAll('.mpi-node');
+        const metricsDiv = document.getElementById('mpiMetrics');
+
+        nodeElements.forEach((node, index) => {
+            setTimeout(() => {
+                const progress = node.querySelector('.progress-fill');
+                let currentProgress = 0;
+
+                const interval = setInterval(() => {
+                    currentProgress += Math.random() * 15;
+                    if (currentProgress >= 100) {
+                        currentProgress = 100;
+                        clearInterval(interval);
+
+                        // Marcar nodo como completado
+                        node.querySelector('.node-status').className = 'node-status completed';
+                        node.querySelector('.node-info span').textContent = 'Completado';
+
+                        completedNodes++;
+
+                        if (completedNodes === nodes) {
+                            this.showMPIResults(nodes, datasetSize, algorithm);
+                        }
+                    }
+                    progress.style.width = `${currentProgress}%`;
+                }, 200 + (index * 100));
+            }, 500 * index);
+        });
+    }
+
+    getMPIAlgorithmName(algorithm) {
+        const names = {
+            'broadcast': 'Broadcast',
+            'scatter': 'Scatter/Gather',
+            'reduce': 'Reduce',
+            'efficiency': 'Análisis Eficiencia',
+            'clustering': 'Clustering',
+            'prediction': 'Predicción'
+        };
+        return names[algorithm] || algorithm;
+    }
+
+    simulateMPILoadBalancing(nodes, problemSize, algorithm) {
+        const loadBalancingDiv = document.getElementById('mpiLoadBalancing');
+        const communicationDiv = document.getElementById('mpiCommunication');
+
+        // Simular balanceo de carga
+        const chunkSizes = this.calculateLoadBalancing(nodes, problemSize);
+
+        loadBalancingDiv.innerHTML = `
+            <h5>📊 Balanceo de Carga</h5>
+            <div class="load-distribution">
+                ${chunkSizes.map((size, index) => `
+                    <div class="load-chunk">
+                        <div class="chunk-bar" style="height: ${(size / Math.max(...chunkSizes)) * 100}%"></div>
+                        <div class="chunk-label">Nodo ${index + 1}<br>${size.toLocaleString()} pts</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // Simular comunicación entre nodos
+        if (algorithm === 'broadcast') {
+            communicationDiv.innerHTML = `
+                <h5>📡 Comunicación - Broadcast</h5>
+                <div class="communication-diagram">
+                    <div class="broadcast-node master">Nodo Maestro</div>
+                    <div class="broadcast-arrows">
+                        ${Array.from({ length: nodes - 1 }, (_, i) => `
+                            <div class="arrow"></div>
+                        `).join('')}
+                    </div>
+                    <div class="broadcast-nodes">
+                        ${Array.from({ length: nodes - 1 }, (_, i) => `
+                            <div class="broadcast-node slave">Nodo ${i + 2}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        this.simulateMPIProcessing(nodes, problemSize, algorithm, chunkSizes);
+    }
+
+    calculateLoadBalancing(nodes, problemSize) {
+        const baseChunk = Math.floor(problemSize / nodes);
+        const remainder = problemSize % nodes;
+
+        return Array.from({ length: nodes }, (_, i) =>
+            baseChunk + (i < remainder ? 1 : 0)
+        );
+    }
+
+    showMPIResults(nodes, datasetSize, algorithm) {
+        const metricsDiv = document.getElementById('mpiMetrics');
+        const speedup = (nodes * 0.8).toFixed(2);
+        const efficiency = ((speedup / nodes) * 100).toFixed(1);
+
+        metricsDiv.innerHTML = `
+            <div class="metric-card">
+                <div class="metric-value">${speedup}x</div>
+                <div class="metric-label">Speedup</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${efficiency}%</div>
+                <div class="metric-label">Eficiencia</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${(datasetSize / 1000).toFixed(1)}s</div>
+                <div class="metric-label">Tiempo Total</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${nodes}</div>
+                <div class="metric-label">Nodos Usados</div>
+            </div>
+        `;
+
+        this.showToast(`✅ Simulación MPI completada con ${nodes} nodos`, 'success');
+    }
+
+    // Simulación OpenMP
+    runOpenMPSimulation() {
+        const threads = parseInt(document.getElementById('openmpThreads').value);
+        const type = document.getElementById('openmpType').value;
+        const chunk = parseInt(document.getElementById('openmpChunk').value);
+        const scheduling = document.getElementById('openmpScheduling')?.value || 'dynamic';
+        const regions = document.getElementById('openmpRegions')?.value || 'sections';
+
+        const resultsDiv = document.getElementById('openmpResults');
+        resultsDiv.innerHTML = `
+            <div class="simulation-header">
+                <h4>⚡ Paralelización OpenMP Avanzada</h4>
+                <p>Ejecutando con ${threads} hilos - Scheduling: ${scheduling} - Región: ${regions}</p>
+            </div>
+            <div class="scheduling-comparison" id="schedulingComparison"></div>
+            <div class="performance-metrics" id="openmpMetrics"></div>
+            <div class="threads-visualization" id="threadsViz"></div>
+            <div class="benchmark-results" id="openmpBenchmark"></div>
+        `;
+
+        this.simulateOpenMPScheduling(threads, scheduling, regions, chunk);
+    }
+
+    simulateOpenMPScheduling(threads, scheduling, regions, chunk) {
+        const comparisonDiv = document.getElementById('schedulingComparison');
+
+        // Comparar diferentes estrategias de scheduling
+        const strategies = ['static', 'dynamic', 'guided', 'auto'];
+        const performances = strategies.map(strategy =>
+            this.calculateSchedulingPerformance(threads, strategy, chunk)
+        );
+
+        comparisonDiv.innerHTML = `
+            <h5>📈 Comparación de Estrategias de Scheduling</h5>
+            <div class="scheduling-chart">
+                ${strategies.map((strategy, index) => `
+                    <div class="scheduling-bar ${strategy === scheduling ? 'active' : ''}" 
+                         style="height: ${performances[index] * 100}%">
+                        <div class="bar-label">${strategy}</div>
+                        <div class="bar-value">${(performances[index] * 100).toFixed(1)}%</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        this.simulateOpenMP(threads, scheduling, regions, chunk);
+    }
+
+    calculateSchedulingPerformance(threads, scheduling, chunk) {
+        const basePerformance = 0.8; // 80% base
+        const modifiers = {
+            'static': chunk > 50 ? 0.95 : 0.85,
+            'dynamic': 0.90,
+            'guided': 0.92,
+            'auto': 0.88
+        };
+
+        return basePerformance * (modifiers[scheduling] || 0.85) * (1 - (threads * 0.01));
+    }
+
+    simulateOpenMP(threads, type, chunk) {
+        const metricsDiv = document.getElementById('openmpMetrics');
+        const vizDiv = document.getElementById('threadsViz');
+
+        // Simular diferentes estrategias de paralelismo
+        let speedup, efficiency, overhead;
+
+        switch (type) {
+            case 'data':
+                speedup = threads * 0.9;
+                efficiency = 90;
+                overhead = 5;
+                break;
+            case 'task':
+                speedup = threads * 0.85;
+                efficiency = 85;
+                overhead = 8;
+                break;
+            case 'pipeline':
+                speedup = threads * 0.95;
+                efficiency = 95;
+                overhead = 3;
+                break;
+        }
+
+        // Ajustar por chunk size
+        const chunkFactor = 1 - ((chunk - 10) * 0.005);
+        speedup *= chunkFactor;
+        efficiency *= chunkFactor;
+
+        metricsDiv.innerHTML = `
+            <div class="metric-card">
+                <div class="metric-value">${speedup.toFixed(2)}x</div>
+                <div class="metric-label">Speedup</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${efficiency.toFixed(1)}%</div>
+                <div class="metric-label">Eficiencia</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${overhead}%</div>
+                <div class="metric-label">Overhead</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${chunk}</div>
+                <div class="metric-label">Chunk Size</div>
+            </div>
+        `;
+
+        // Visualización de hilos
+        vizDiv.innerHTML = '<h5>Estado de Hilos:</h5>';
+        for (let i = 0; i < threads; i++) {
+            const threadDiv = document.createElement('div');
+            threadDiv.className = 'mpi-node';
+            threadDiv.innerHTML = `
+                <div class="node-status processing"></div>
+                <div class="node-info">
+                    <strong>Hilo ${i + 1}</strong>
+                    <span>Procesando chunk de ${chunk} elementos</span>
+                </div>
+            `;
+            vizDiv.appendChild(threadDiv);
+        }
+
+        this.showToast(`⚡ OpenMP ejecutado con ${threads} hilos`, 'success');
+    }
+
+    benchmarkOpenMP() {
+        const resultsDiv = document.getElementById('openmpResults');
+        resultsDiv.innerHTML = `
+            <div class="simulation-header">
+                <h4>📊 Benchmark de OpenMP</h4>
+                <p>Comparando escalabilidad con diferentes números de hilos</p>
+            </div>
+            <div class="benchmark-results" id="benchmarkResults"></div>
+        `;
+
+        // Simular benchmark
+        setTimeout(() => {
+            const benchmarkDiv = document.getElementById('benchmarkResults');
+            const threads = [2, 4, 8, 16, 32];
+            const speedups = threads.map(t => (t * 0.85).toFixed(2));
+
+            benchmarkDiv.innerHTML = `
+                <div class="comparison-chart">
+                    ${threads.map((thread, index) => `
+                        <div class="paradigm-bar openmp" style="height: ${(speedups[index] / 32) * 250}px">
+                            <div class="bar-label">${thread}T</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="benchmark-metrics">
+                    <p><strong>Mejor configuración:</strong> 8 hilos con speedup de ${speedups[2]}x</p>
+                    <p><strong>Escalabilidad:</strong> ${((speedups[4] - speedups[0]) / speedups[0] * 100).toFixed(1)}% de mejora</p>
+                </div>
+            `;
+        }, 1000);
+    }
+
+    // Análisis Haskell
+    runHaskellAnalysis() {
+        const functionType = document.getElementById('haskellFunction').value;
+        const purity = parseInt(document.getElementById('haskellPurity').value);
+        const strategy = document.getElementById('haskellStrategy').value;
+        const transform = document.getElementById('haskellTransform')?.value || 'fold';
+        const analysisType = document.getElementById('haskellAnalysisType')?.value || 'efficiency';
+
+        const resultsDiv = document.getElementById('haskellResults');
+        resultsDiv.innerHTML = `
+            <div class="simulation-header">
+                <h4>λ Análisis Funcional Avanzado</h4>
+                <p>Transformación: ${transform} - Análisis: ${analysisType} - Pureza: ${purity}/10</p>
+            </div>
+            <div class="haskell-pipeline" id="haskellPipeline"></div>
+            <div class="haskell-results" id="haskellOutput"></div>
+            <div class="functional-metrics" id="haskellMetrics"></div>
+        `;
+
+        this.simulateHaskellPipeline(transform, analysisType, purity, strategy);
+    }
+
+    simulateHaskellPipeline(transform, analysisType, purity, strategy) {
+        const pipelineDiv = document.getElementById('haskellPipeline');
+
+        const pipelineSteps = this.getPipelineSteps(transform, analysisType);
+
+        pipelineDiv.innerHTML = `
+            <h5>🔗 Pipeline de Transformación Funcional</h5>
+            <div class="pipeline-flow">
+                ${pipelineSteps.map((step, index) => `
+                    <div class="pipeline-step">
+                        <div class="step-number">${index + 1}</div>
+                        <div class="step-name">${step.name}</div>
+                        <div class="step-description">${step.description}</div>
+                        <div class="step-arrow">→</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        this.simulateHaskellAnalysis(transform, analysisType, purity, strategy);
+    }
+
+    getPipelineSteps(transform, analysisType) {
+        const baseSteps = [
+            { name: 'Datos Crudos', description: 'Lectura de sensores' },
+            { name: 'Limpieza', description: 'Filtrado de valores nulos' }
+        ];
+
+        const transformSteps = {
+            'map': { name: 'Map', description: 'Transformación de valores' },
+            'filter': { name: 'Filter', description: 'Filtrado por condiciones' },
+            'fold': { name: 'Fold', description: 'Agregación de métricas' },
+            'scan': { name: 'Scan', description: 'Acumulación parcial' },
+            'composition': { name: 'Composición', description: 'Pipeline de funciones' }
+        };
+
+        const analysisSteps = {
+            'trend': { name: 'Tendencias', description: 'Análisis temporal' },
+            'efficiency': { name: 'Eficiencia', description: 'Cálculo de rendimiento' },
+            'anomaly': { name: 'Anomalías', description: 'Detección de outliers' },
+            'optimization': { name: 'Optimización', description: 'Recomendaciones' }
+        };
+
+        return [
+            ...baseSteps,
+            transformSteps[transform],
+            analysisSteps[analysisType],
+            { name: 'Resultado', description: 'Visualización' }
+        ];
+    }
+
+    simulateHaskellAnalysis(functionType, purity, strategy) {
+        const outputDiv = document.getElementById('haskellOutput');
+
+        // Datos de ejemplo de las oficinas
+        const officeData = this.resumenes;
+        let result;
+
+        switch (functionType) {
+            case 'efficiency':
+                result = this.haskellCalculateEfficiency(officeData);
+                break;
+            case 'trend':
+                result = this.haskellAnalyzeTrends(officeData);
+                break;
+            case 'optimization':
+                result = this.haskellOptimizeEnergy(officeData);
+                break;
+            case 'composition':
+                result = this.haskellComposeFunctions(officeData);
+                break;
+        }
+
+        outputDiv.innerHTML = `
+            <div class="code-example">
+// Transformación funcional aplicada<br>
+${result.code}
+            </div>
+            <div class="performance-metrics">
+                <div class="metric-card">
+                    <div class="metric-value">${result.purity}%</div>
+                    <div class="metric-label">Pureza</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${result.performance}x</div>
+                    <div class="metric-label">Rendimiento</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${result.accuracy}%</div>
+                    <div class="metric-label">Precisión</div>
+                </div>
+            </div>
+            <div class="analysis-result">
+                <h5>Resultado del Análisis:</h5>
+                <p>${result.insight}</p>
+            </div>
+        `;
+
+        this.showToast('λ Análisis funcional completado', 'success');
+    }
+
+    haskellCalculateEfficiency(data) {
+        return {
+            code: `let efficiencies = map (\\office -> \n  (office.consumo_kvh / office.tiempo_presente) * 100\n) officeData\nin average efficiencies`,
+            purity: 98,
+            performance: 1.2,
+            accuracy: 95,
+            insight: 'La eficiencia promedio del sistema es del 78.3%, con la Oficina B mostrando la mejor eficiencia (85.2%)'
+        };
+    }
+
+    // Motor Prolog
+    runPrologEngine() {
+        const knowledgeBase = document.getElementById('prologKnowledgeBase').value;
+        const inferenceLevel = parseInt(document.getElementById('prologInference').value);
+        const strategy = document.getElementById('prologStrategy').value;
+
+        const resultsDiv = document.getElementById('prologResults');
+        resultsDiv.innerHTML = `
+            <div class="simulation-header">
+                <h4>🤖 Motor de Reglas Inteligente</h4>
+                <p>Base: ${knowledgeBase} - Inferencia: Nivel ${inferenceLevel} - Estrategia: ${strategy}</p>
+            </div>
+            <div class="prolog-knowledge-graph" id="prologKnowledgeGraph"></div>
+            <div class="prolog-inference" id="prologInferenceResults"></div>
+            <div class="prolog-recommendations" id="prologRecommendations"></div>
+        `;
+
+        this.simulatePrologKnowledgeGraph(knowledgeBase, inferenceLevel);
+        this.simulatePrologEngine(knowledgeBase, inferenceLevel, strategy);
+    }
+
+    simulatePrologKnowledgeGraph(knowledgeBase, inferenceLevel) {
+        const graphDiv = document.getElementById('prologKnowledgeGraph');
+        
+        const rules = this.getPrologRules(knowledgeBase);
+        const connections = this.generateRuleConnections(rules, inferenceLevel);
+        
+        graphDiv.innerHTML = `
+            <h5>🕸️ Grafo de Conocimiento</h5>
+            <div class="knowledge-nodes">
+                ${rules.map((rule, index) => `
+                    <div class="knowledge-node" style="animation-delay: ${index * 0.1}s">
+                        <div class="node-header">${rule.head}</div>
+                        <div class="node-body">${rule.body}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="knowledge-connections">
+                ${connections.map(conn => `
+                    <div class="connection" style="--from: ${conn.from}; --to: ${conn.to}"></div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    generateRuleConnections(rules, level) {
+        const connections = [];
+        for (let i = 0; i < Math.min(rules.length - 1, level * 2); i++) {
+            connections.push({
+                from: i,
+                to: i + 1
+            });
+        }
+        return connections;
+    }
+
+    simulatePrologEngine(knowledgeBase, inferenceLevel, strategy) {
+        const resultsDiv = document.getElementById('prologInferenceResults');
+
+        const rules = this.getPrologRules(knowledgeBase);
+        const inferences = this.generatePrologInferences(knowledgeBase, inferenceLevel);
+
+        resultsDiv.innerHTML = `
+            <div class="prolog-rules">
+                <h5>Base de Reglas Activada:</h5>
+                ${rules.map(rule => `
+                    <div class="rule-item">
+                        <div class="rule-head">${rule.head}</div>
+                        <div class="rule-body">${rule.body}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="inference-results">
+                <h5>Inferencias Generadas:</h5>
+                ${inferences.map(inf => `
+                    <div class="mpi-node">
+                        <div class="node-status ${inf.critical ? 'critical' : 'completed'}"></div>
+                        <div class="node-info">
+                            <strong>${inf.type}</strong>
+                            <span>${inf.message}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        this.showToast('🤖 Motor de reglas ejecutado', 'success');
+    }
+
+    getPrologRules(knowledgeBase) {
+        const rules = {
+            efficiency: [
+                { head: 'alta_eficiencia(Oficina)', body: 'consumo_kvh < 1.5, tiempo_presente > 30' },
+                { head: 'baja_eficiencia(Oficina)', body: 'consumo_kvh > 2.0, tiempo_presente < 20' },
+                { head: 'optimizable(Oficina)', body: 'baja_eficiencia(Oficina), not presencia_continua' }
+            ],
+            optimization: [
+                { head: 'apagar_luces(Oficina)', body: 'not presencia, luces_encendidas' },
+                { head: 'ajustar_temperatura(Oficina)', body: 'temperatura > 26, aire_encendido' },
+                { head: 'modo_ahorro(Oficina)', body: 'horario_no_laboral, consumo_alto' }
+            ]
+        };
+        return rules[knowledgeBase] || rules.efficiency;
+    }
+
+    generatePrologInferences(knowledgeBase, level) {
+        // Generar inferencias basadas en datos reales
+        const inferences = [];
+        const offices = Object.keys(this.resumenes);
+
+        offices.forEach(office => {
+            const data = this.resumenes[office];
+
+            if (knowledgeBase === 'efficiency') {
+                if (data.consumo_kvh > 2.0) {
+                    inferences.push({
+                        type: 'Alerta Eficiencia',
+                        message: `Oficina ${office} muestra baja eficiencia energética`,
+                        critical: true
+                    });
+                }
+                if (data.corriente_a > 15) {
+                    inferences.push({
+                        type: 'Optimización Recomendada',
+                        message: `Oficina ${office} tiene consumo elevado - revisar dispositivos`,
+                        critical: false
+                    });
+                }
+            }
+        });
+
+        return inferences.slice(0, level * 2);
+    }
+
+    // Análisis Comparativo
+    runComparativeAnalysis() {
+        const selectedParadigms = this.getSelectedParadigms();
+        const metric = document.getElementById('comparativeMetric').value;
+        const scenario = document.getElementById('comparativeScenario')?.value || 'historical';
+    
+        const resultsDiv = document.getElementById('comparativeResults');
+        resultsDiv.innerHTML = `
+            <div class="simulation-header">
+                <h4>📊 Análisis Comparativo Multi-Paradigma</h4>
+                <p>Comparando ${selectedParadigms.join(', ')} - Métrica: ${metric} - Escenario: ${scenario}</p>
+            </div>
+            <div class="paradigm-radar" id="paradigmRadar"></div>
+            <div class="comparison-results" id="comparisonResults"></div>
+            <div class="recommendation-engine" id="paradigmRecommendations"></div>
+        `;
+    
+        this.showComparativeRadar(selectedParadigms, metric, scenario);
+        this.showComparativeResults(selectedParadigms, metric, scenario);
+        this.showParadigmRecommendations(selectedParadigms, metric, scenario);
+    }
+
+    showComparativeRadar(paradigms, metric, scenario) {
+        const radarDiv = document.getElementById('paradigmRadar');
+        
+        const metrics = ['performance', 'efficiency', 'accuracy', 'scalability', 'memory', 'implementation'];
+        const data = this.generateRadarData(paradigms, metrics, scenario);
+        
+        radarDiv.innerHTML = `
+            <h5>📈 Gráfico de Radar Comparativo</h5>
+            <div class="radar-chart">
+                <div class="radar-grid">
+                    ${metrics.map((_, index) => `
+                        <div class="radar-axis" style="--angle: ${index * (360 / metrics.length)}deg"></div>
+                    `).join('')}
+                </div>
+                ${paradigms.map(paradigm => `
+                    <div class="radar-polygon ${paradigm}" style="--points: ${data[paradigm].join(',')}">
+                        <div class="radar-label">${paradigm}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    generateRadarData(paradigms, metrics, scenario) {
+        const data = {};
+        paradigms.forEach(paradigm => {
+            data[paradigm] = metrics.map(metric => 
+                Math.random() * 0.6 + 0.4 // Valores entre 0.4 y 1.0
+            );
+        });
+        return data;
+    }    
+
+    showParadigmRecommendations(paradigms, metric, scenario) {
+        const recommendationsDiv = document.getElementById('paradigmRecommendations');
+        
+        const bestParadigm = paradigms[Math.floor(Math.random() * paradigms.length)];
+        const recommendations = this.generateRecommendations(bestParadigm, metric, scenario);
+        
+        recommendationsDiv.innerHTML = `
+            <h5>💡 Recomendaciones de Uso</h5>
+            <div class="recommendation-card">
+                <div class="recommendation-header">
+                    <i class="fas fa-trophy"></i>
+                    <strong>Paradigma Recomendado: ${bestParadigm.toUpperCase()}</strong>
+                </div>
+                <div class="recommendation-body">
+                    <p>${recommendations.reason}</p>
+                    <div class="recommendation-features">
+                        ${recommendations.features.map(feature => `
+                            <div class="feature-item">
+                                <i class="fas fa-check"></i>
+                                <span>${feature}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    generateRecommendations(paradigm, metric, scenario) {
+        const recommendations = {
+            mpi: {
+                reason: "Ideal para procesamiento distribuido de grandes volúmenes de datos históricos",
+                features: [
+                    "Alto rendimiento en clusters",
+                    "Escalabilidad horizontal",
+                    "Perfecto para análisis batch"
+                ]
+            },
+            openmp: {
+                reason: "Óptimo para paralelización en tiempo real con recursos compartidos",
+                features: [
+                    "Bajo overhead de comunicación",
+                    "Fácil implementación",
+                    "Ideal para procesamiento en streams"
+                ]
+            },
+            haskell: {
+                reason: "Excelente para análisis complejos y transformaciones funcionales",
+                features: [
+                    "Código robusto y mantenible",
+                    "Transformaciones inmutables",
+                    "Perfecto para pipelines de datos"
+                ]
+            },
+            prolog: {
+                reason: "Superior para sistemas de reglas y toma de decisiones inteligentes",
+                features: [
+                    "Motor de inferencia avanzado",
+                    "Base de conocimiento flexible",
+                    "Ideal para recomendaciones"
+                ]
+            }
+        };
+    
+        return recommendations[paradigm] || recommendations.mpi;
+    }
+
+    getSelectedParadigms() {
+        const paradigms = [];
+        if (document.getElementById('compareMPI').checked) paradigms.push('mpi');
+        if (document.getElementById('compareOpenMP').checked) paradigms.push('openmp');
+        if (document.getElementById('compareHaskell').checked) paradigms.push('haskell');
+        if (document.getElementById('compareProlog').checked) paradigms.push('prolog');
+        return paradigms;
+    }
+
+    showComparativeResults(paradigms, metric) {
+        const resultsDiv = document.getElementById('comparisonResults');
+
+        // Generar datos de comparación
+        const comparisonData = this.generateComparisonData(paradigms, metric);
+
+        resultsDiv.innerHTML = `
+            <div class="comparison-chart">
+                ${comparisonData.map(item => `
+                    <div class="paradigm-bar ${item.paradigm}" style="height: ${item.value}px">
+                        <div class="bar-label">${item.label}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="comparison-analysis">
+                <h5>Análisis Comparativo:</h5>
+                <p>${this.getComparativeInsight(paradigms, metric, comparisonData)}</p>
+                <div class="performance-metrics">
+                    ${comparisonData.map(item => `
+                        <div class="metric-card">
+                            <div class="metric-value">${item.score}</div>
+                            <div class="metric-label">${item.label}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    generateComparisonData(paradigms, metric) {
+        const baseScores = {
+            performance: { mpi: 85, openmp: 92, haskell: 78, prolog: 65 },
+            efficiency: { mpi: 80, openmp: 88, haskell: 95, prolog: 70 },
+            accuracy: { mpi: 90, openmp: 85, haskell: 98, prolog: 92 },
+            scalability: { mpi: 95, openmp: 80, haskell: 75, prolog: 60 }
+        };
+
+        const labels = {
+            mpi: 'MPI',
+            openmp: 'OpenMP',
+            haskell: 'Haskell',
+            prolog: 'Prolog'
+        };
+
+        return paradigms.map(paradigm => ({
+            paradigm,
+            label: labels[paradigm],
+            value: baseScores[metric][paradigm] * 2,
+            score: baseScores[metric][paradigm]
+        }));
+    }
+
+    getComparativeInsight(paradigms, metric, data) {
+        const best = data.reduce((prev, current) =>
+            prev.score > current.score ? prev : current
+        );
+
+        return `El paradigma ${best.label} muestra el mejor rendimiento en ${metric} con un score de ${best.score}%. ${metric === 'performance' ? 'Ideal para procesamiento en tiempo real.' :
+            metric === 'efficiency' ? 'Optimizado para uso eficiente de recursos.' :
+                metric === 'accuracy' ? 'Proporciona resultados más precisos.' :
+                    'Escala mejor con cargas de trabajo grandes.'
+            }`;
+    }
+
+    debugNavbar() {
+        console.log('🔍 Debug del Navbar (Click):');
+
+        const dropdowns = document.querySelectorAll('.nav-dropdown');
+        console.log(`✅ Dropdowns encontrados: ${dropdowns.length}`);
+
+        const options = document.querySelectorAll('.paradigm-option');
+        console.log(`✅ Opciones de paradigmas: ${options.length}`);
+
+        const buttons = document.querySelectorAll('.nav-dropbtn');
+        console.log(`✅ Botones de dropdown: ${buttons.length}`);
+
+        // Verificar que los event listeners están configurados
+        buttons.forEach((button, index) => {
+            console.log(`✅ Botón ${index + 1}: ${button.textContent.trim()}`);
+        });
     }
 }
 

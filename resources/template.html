@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel de Monitoreo Energético Inteligente</title>
+    <title>Panel de Monitoreo Energético 2025</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.min.js"></script>
@@ -39,42 +39,107 @@
             </div>
         </div>
 
-        <!-- Navbar Temático -->
+        <!-- Navbar Temático Mejorado -->
         <nav class="navbar-thematic">
             <div class="nav-container">
+                <!-- Programación Paralela -->
                 <div class="nav-dropdown">
-                    <button class="nav-dropbtn">
-                        <i class="fas fa-microchip"></i> Programación Paralela
+                    <button class="nav-dropbtn" onclick="dashboard.toggleDropdown(this)">
+                        <i class="fas fa-microchip"></i> Computación Paralela
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="nav-dropdown-content">
-                        <a href="#" onclick="dashboard.showMPIAnalysis()"><i class="fas fa-network-wired"></i> MPI - Procesamiento Distribuido</a>
-                        <a href="#" onclick="dashboard.showOpenMPAnalysis()"><i class="fas fa-code-branch"></i> OpenMP - Paralelización</a>
+                        <a href="#" class="paradigm-option" data-modal="modalMPI">
+                            <div class="paradigm-icon">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <div class="paradigm-info">
+                                <strong>MPI - Procesamiento Distribuido</strong>
+                                <span>Distribuye cálculos entre múltiples nodos para análisis masivo de datos
+                                    históricos</span>
+                            </div>
+                        </a>
+                        <a href="#" class="paradigm-option" data-modal="modalOpenMP">
+                            <div class="paradigm-icon">
+                                <i class="fas fa-code-branch"></i>
+                            </div>
+                            <div class="paradigm-info">
+                                <strong>OpenMP - Paralelización Multihilo</strong>
+                                <span>Divide tareas en hilos paralelos para procesamiento en tiempo real de
+                                    streams</span>
+                            </div>
+                        </a>
                     </div>
                 </div>
 
+                <!-- Programación Funcional -->
                 <div class="nav-dropdown">
-                    <button class="nav-dropbtn">
-                        <i class="fas fa-function"></i> Programación Funcional
+                    <button class="nav-dropbtn" onclick="dashboard.toggleDropdown(this)">
+                        <i class="fas fa-lambda"></i> Programación Funcional
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="nav-dropdown-content">
-                        <a href="#" onclick="dashboard.showHaskellAnalysis()"><i class="fas fa-lambda"></i> Haskell - Análisis Funcional</a>
+                        <a href="#" class="paradigm-option" data-modal="modalHaskell">
+                            <div class="paradigm-icon">
+                                <i class="fas fa-project-diagram"></i>
+                            </div>
+                            <div class="paradigm-info">
+                                <strong>Haskell - Análisis Puro</strong>
+                                <span>Análisis inmutable de tendencias y composición funcional de métricas</span>
+                            </div>
+                        </a>
                     </div>
                 </div>
 
+                <!-- Programación Lógica -->
                 <div class="nav-dropdown">
-                    <button class="nav-dropbtn">
+                    <button class="nav-dropbtn" onclick="dashboard.toggleDropdown(this)">
                         <i class="fas fa-brain"></i> Programación Lógica
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="nav-dropdown-content">
-                        <a href="#" onclick="dashboard.showPrologRules()"><i class="fas fa-robot"></i> Prolog - Sistema de Reglas</a>
+                        <a href="#" class="paradigm-option" data-modal="modalProlog">
+                            <div class="paradigm-icon">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="paradigm-info">
+                                <strong>Prolog - Sistema de Reglas</strong>
+                                <span>Motor de inferencia lógica para recomendaciones y detección de patrones</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Análisis Integrado -->
+                <div class="nav-dropdown">
+                    <button class="nav-dropbtn" onclick="dashboard.toggleDropdown(this)">
+                        <i class="fas fa-chart-network"></i> Análisis Integrado
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" class="paradigm-option" data-modal="modalComparative">
+                            <div class="paradigm-icon">
+                                <i class="fas fa-chess-board"></i>
+                            </div>
+                            <div class="paradigm-info">
+                                <strong>Análisis Comparativo</strong>
+                                <span>Compara resultados de todos los paradigmas y genera reportes unificados</span>
+                            </div>
+                        </a>
+                        <a href="#" class="paradigm-option" data-action="benchmark">
+                            <div class="paradigm-icon">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <div class="paradigm-info">
+                                <strong>Benchmark de Rendimiento</strong>
+                                <span>Evalúa eficiencia computacional de cada paradigma en diferentes cargas</span>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>
         </nav>
-        
+
     </header>
 
     <div class="container">
@@ -207,6 +272,15 @@
         </main>
     </div>
 
+    <!-- Botón de Ayuda Flotante Mejorado -->
+    <div class="help-floating-btn" id="helpBtn">
+        <div class="help-btn-content">
+            <i class="fas fa-question"></i>
+            <div class="help-pulse"></div>
+        </div>
+        <div class="help-tooltip">¿Necesitas ayuda?</div>
+    </div>
+
     <!-- Modales (mantener igual) -->
     <div id="modalAgregarOficina" class="modal-overlay">
         <div class="modal glass-card">
@@ -268,103 +342,839 @@
         </div>
     </div>
 
-    <!-- Nuevos Modales para Paradigmas -->
+    <!-- Modal de Ayuda Super Mejorado -->
+    <div id="helpModal" class="modal-overlay help-modal">
+        <div class="modal glass-card large help-modal-container">
+            <!-- Header con pestañas -->
+            <div class="modal-header help-header">
+                <div class="help-title-section">
+                    <div class="help-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <div>
+                        <h3>Centro de Ayuda Inteligente</h3>
+                        <p class="help-subtitle">Guía completa del Sistema de Monitoreo Energético</p>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="dashboard.closeHelpModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Navegación con iconos -->
+            <div class="help-nav-enhanced">
+                <div class="help-nav-track">
+                    <button class="help-nav-item active" data-section="overview">
+                        <div class="nav-icon">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        <span>Inicio Rápido</span>
+                    </button>
+                    <button class="help-nav-item" data-section="architecture">
+                        <div class="nav-icon">
+                            <i class="fas fa-sitemap"></i>
+                        </div>
+                        <span>Arquitectura</span>
+                    </button>
+                    <button class="help-nav-item" data-section="dashboard">
+                        <div class="nav-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="help-nav-item" data-section="paradigms">
+                        <div class="nav-icon">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        <span>Paradigmas</span>
+                    </button>
+                    <button class="help-nav-item" data-section="controls">
+                        <div class="nav-icon">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <span>Controles</span>
+                    </button>
+                    <button class="help-nav-item" data-section="alerts">
+                        <div class="nav-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <span>Alertas</span>
+                    </button>
+                    <button class="help-nav-item" data-section="tips">
+                        <div class="nav-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <span>Tips Pro</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="help-content-enhanced">
+                <!-- Sección: Inicio Rápido -->
+                <div class="help-section active" id="help-overview">
+                    <div class="section-hero">
+                        <div class="hero-content">
+                            <h4><i class="fas fa-bolt"></i> Bienvenido al Sistema Inteligente</h4>
+                            <p class="hero-description">Monitorea y optimiza el consumo energético de tus oficinas en
+                                tiempo real con tecnología multi-paradigma</p>
+                        </div>
+                        <div class="hero-stats">
+                            <div class="stat-badge">
+                                <i class="fas fa-building"></i>
+                                <span>3 Oficinas</span>
+                            </div>
+                            <div class="stat-badge">
+                                <i class="fas fa-microchip"></i>
+                                <span>4 Paradigmas</span>
+                            </div>
+                            <div class="stat-badge">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Tiempo Real</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quick-start-grid">
+                        <div class="quick-step">
+                            <div class="step-visual">
+                                <div class="step-number">1</div>
+                                <div class="step-animation">
+                                    <i class="fas fa-sensor"></i>
+                                </div>
+                            </div>
+                            <div class="step-content">
+                                <h5>Simulación de Sensores</h5>
+                                <p>El sistema genera datos realistas de presencia, corriente y temperatura cada 10
+                                    segundos</p>
+                                <ul class="step-features">
+                                    <li><i class="fas fa-check"></i> 3 oficinas monitoreadas</li>
+                                    <li><i class="fas fa-check"></i> Datos en tiempo real</li>
+                                    <li><i class="fas fa-check"></i> Comportamiento inteligente</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="quick-step">
+                            <div class="step-visual">
+                                <div class="step-number">2</div>
+                                <div class="step-animation">
+                                    <i class="fas fa-broadcast-tower"></i>
+                                </div>
+                            </div>
+                            <div class="step-content">
+                                <h5>Procesamiento MQTT</h5>
+                                <p>Los datos viajan mediante el protocolo MQTT para comunicación descentralizada</p>
+                                <ul class="step-features">
+                                    <li><i class="fas fa-check"></i> Broker Mosquitto</li>
+                                    <li><i class="fas fa-check"></i> Comunicación pub/sub</li>
+                                    <li><i class="fas fa-check"></i> Baja latencia</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="quick-step">
+                            <div class="step-visual">
+                                <div class="step-number">3</div>
+                                <div class="step-animation">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                            </div>
+                            <div class="step-content">
+                                <h5>Almacenamiento Firebase</h5>
+                                <p>Persistencia de datos en tiempo real con Firebase Realtime Database</p>
+                                <ul class="step-features">
+                                    <li><i class="fas fa-check"></i> Sincronización automática</li>
+                                    <li><i class="fas fa-check"></i> Escalabilidad</li>
+                                    <li><i class="fas fa-check"></i> Histórico completo</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="quick-step">
+                            <div class="step-visual">
+                                <div class="step-number">4</div>
+                                <div class="step-animation">
+                                    <i class="fas fa-desktop"></i>
+                                </div>
+                            </div>
+                            <div class="step-content">
+                                <h5>Visualización Dashboard</h5>
+                                <p>Interfaz moderna con gráficos 3D y controles en tiempo real</p>
+                                <ul class="step-features">
+                                    <li><i class="fas fa-check"></i> Glassmorphism design</li>
+                                    <li><i class="fas fa-check"></i> WebSockets</li>
+                                    <li><i class="fas fa-check"></i> Responsive</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Arquitectura -->
+                <div class="help-section" id="help-architecture">
+                    <div class="section-header">
+                        <h4><i class="fas fa-sitemap"></i> Arquitectura del Sistema</h4>
+                        <p>Infraestructura escalable y robusta para monitoreo energético</p>
+                    </div>
+
+                    <div class="architecture-diagram">
+                        <div class="arch-layer">
+                            <div class="layer-header">
+                                <i class="fas fa-cloud"></i>
+                                <h5>Capa de Presentación</h5>
+                            </div>
+                            <div class="layer-components">
+                                <div class="component-card">
+                                    <i class="fas fa-desktop"></i>
+                                    <h6>Dashboard Web</h6>
+                                    <p>Interfaz usuario con Chart.js y Three.js</p>
+                                </div>
+                                <div class="component-card">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <h6>WebSockets</h6>
+                                    <p>Comunicación tiempo real bidireccional</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="arch-layer">
+                            <div class="layer-header">
+                                <i class="fas fa-code"></i>
+                                <h5>Capa de Lógica</h5>
+                            </div>
+                            <div class="layer-components">
+                                <div class="component-card">
+                                    <i class="fas fa-broadcast-tower"></i>
+                                    <h6>Publisher Go</h6>
+                                    <p>Simulación de sensores y datos MQTT</p>
+                                </div>
+                                <div class="component-card">
+                                    <i class="fas fa-download"></i>
+                                    <h6>Subscriber Go</h6>
+                                    <p>Procesamiento y almacenamiento Firebase</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="arch-layer">
+                            <div class="layer-header">
+                                <i class="fas fa-database"></i>
+                                <h5>Capa de Datos</h5>
+                            </div>
+                            <div class="layer-components">
+                                <div class="component-card">
+                                    <i class="fas fa-bolt"></i>
+                                    <h6>Mosquitto MQTT</h6>
+                                    <p>Broker de mensajería descentralizada</p>
+                                </div>
+                                <div class="component-card">
+                                    <i class="fas fa-fire"></i>
+                                    <h6>Firebase RTDB</h6>
+                                    <p>Base de datos tiempo real</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Dashboard (mejorada) -->
+                <div class="help-section" id="help-dashboard">
+                    <div class="section-header">
+                        <h4><i class="fas fa-tachometer-alt"></i> Guía del Dashboard</h4>
+                        <p>Domina todas las funcionalidades de la interfaz principal</p>
+                    </div>
+
+                    <div class="dashboard-tour">
+                        <div class="tour-section">
+                            <h5><i class="fas fa-building"></i> Panel de Oficinas</h5>
+                            <div class="metric-explanation">
+                                <div class="metric-item">
+                                    <div class="metric-visual electric">
+                                        <i class="fas fa-bolt"></i>
+                                    </div>
+                                    <div class="metric-details">
+                                        <h6>Corriente Eléctrica (A)</h6>
+                                        <p>Consumo actual en amperios. Valores normales: 5-15A. Alerta: >21.5A</p>
+                                    </div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-visual consumption">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <div class="metric-details">
+                                        <h6>Consumo Energético (kWh)</h6>
+                                        <p>Energía consumida por hora. Incluye luces, aire acondicionado y equipos</p>
+                                    </div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-visual temp">
+                                        <i class="fas fa-thermometer-half"></i>
+                                    </div>
+                                    <div class="metric-details">
+                                        <h6>Temperatura Ambiente</h6>
+                                        <p>Rango térmico óptimo: 22°C - 26°C. Aire se activa >25°C</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tour-section">
+                            <h5><i class="fas fa-chart-bar"></i> Gráficos Interactivos</h5>
+                            <div class="charts-guide">
+                                <div class="chart-type">
+                                    <div class="chart-preview realtime"></div>
+                                    <div class="chart-info">
+                                        <h6>Consumo Tiempo Real</h6>
+                                        <p>Evolución del consumo total cada 10 segundos</p>
+                                    </div>
+                                </div>
+                                <div class="chart-type">
+                                    <div class="chart-preview distribution"></div>
+                                    <div class="chart-info">
+                                        <h6>Distribución 3D</h6>
+                                        <p>Comparación visual entre oficinas con gráfico 3D</p>
+                                    </div>
+                                </div>
+                                <div class="chart-type">
+                                    <div class="chart-preview temperature"></div>
+                                    <div class="chart-info">
+                                        <h6>Temperaturas</h6>
+                                        <p>Monitoreo térmico con mínimas y máximas</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Paradigmas (mejorada) -->
+                <div class="help-section" id="help-paradigms">
+                    <div class="section-header">
+                        <h4><i class="fas fa-cogs"></i> Paradigmas de Programación</h4>
+                        <p>Integración multi-paradigma para análisis avanzado</p>
+                    </div>
+
+                    <div class="paradigms-showcase">
+                        <div class="paradigm-feature">
+                            <div class="paradigm-card enhanced mpi">
+                                <div class="paradigm-header">
+                                    <i class="fas fa-network-wired"></i>
+                                    <h5>MPI - Message Passing Interface</h5>
+                                </div>
+                                <div class="paradigm-body">
+                                    <div class="paradigm-stats">
+                                        <div class="stat">
+                                            <span class="stat-value">Distribuido</span>
+                                            <span class="stat-label">Arquitectura</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Alto Rendimiento</span>
+                                            <span class="stat-label">Rendimiento</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Análisis Masivo</span>
+                                            <span class="stat-label">Caso de Uso</span>
+                                        </div>
+                                    </div>
+                                    <p><strong>Aplicación:</strong> Procesamiento distribuido de datos históricos para
+                                        análisis de tendencias mensuales y detección de patrones estacionales de
+                                        consumo.</p>
+                                    <div class="code-preview">
+                                        <code>mpirun -np 4 analysis_mpi historical_data.json</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="paradigm-feature">
+                            <div class="paradigm-card enhanced openmp">
+                                <div class="paradigm-header">
+                                    <i class="fas fa-code-branch"></i>
+                                    <h5>OpenMP - Paralelización</h5>
+                                </div>
+                                <div class="paradigm-body">
+                                    <div class="paradigm-stats">
+                                        <div class="stat">
+                                            <span class="stat-value">Multihilo</span>
+                                            <span class="stat-label">Arquitectura</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Tiempo Real</span>
+                                            <span class="stat-label">Rendimiento</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Stream Processing</span>
+                                            <span class="stat-label">Caso de Uso</span>
+                                        </div>
+                                    </div>
+                                    <p><strong>Aplicación:</strong> Procesamiento paralelo de streams de datos en tiempo
+                                        real para análisis inmediato y respuesta rápida a cambios.</p>
+                                    <div class="code-preview">
+                                        <code>#pragma omp parallel for<br>process_sensor_data(sensor_stream);</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="paradigm-feature">
+                            <div class="paradigm-card enhanced haskell">
+                                <div class="paradigm-header">
+                                    <i class="fas fa-lambda"></i>
+                                    <h5>Haskell - Funcional Puro</h5>
+                                </div>
+                                <div class="paradigm-body">
+                                    <div class="paradigm-stats">
+                                        <div class="stat">
+                                            <span class="stat-value">Inmutable</span>
+                                            <span class="stat-label">Arquitectura</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Alta Confiabilidad</span>
+                                            <span class="stat-label">Rendimiento</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Análisis Complejo</span>
+                                            <span class="stat-label">Caso de Uso</span>
+                                        </div>
+                                    </div>
+                                    <p><strong>Aplicación:</strong> Análisis funcional de métricas complejas,
+                                        composición de funciones de transformación y cálculos matemáticos avanzados.</p>
+                                    <div class="code-preview">
+                                        <code>let efficiency = calculateEfficiency . analyzeTrends $ sensorData</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="paradigm-feature">
+                            <div class="paradigm-card enhanced prolog">
+                                <div class="paradigm-header">
+                                    <i class="fas fa-robot"></i>
+                                    <h5>Prolog - Lógica</h5>
+                                </div>
+                                <div class="paradigm-body">
+                                    <div class="paradigm-stats">
+                                        <div class="stat">
+                                            <span class="stat-value">Basado en Reglas</span>
+                                            <span class="stat-label">Arquitectura</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Inferencia Automática</span>
+                                            <span class="stat-label">Rendimiento</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">Recomendaciones</span>
+                                            <span class="stat-label">Caso de Uso</span>
+                                        </div>
+                                    </div>
+                                    <p><strong>Aplicación:</strong> Motor de reglas inteligente para generación de
+                                        recomendaciones, detección de anomalías y optimización automática.</p>
+                                    <div class="code-preview">
+                                        <code>energy_saving(X) :- high_consumption(X), not presence(X).</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Tips Pro -->
+                <div class="help-section" id="help-tips">
+                    <div class="section-header">
+                        <h4><i class="fas fa-lightbulb"></i> Tips Profesionales</h4>
+                        <p>Consejos avanzados para maximizar la eficiencia energética</p>
+                    </div>
+
+                    <div class="pro-tips">
+                        <div class="tip-category">
+                            <h5><i class="fas fa-optimize"></i> Optimización Energética</h5>
+                            <div class="tips-grid">
+                                <div class="tip-card">
+                                    <div class="tip-icon">
+                                        <i class="fas fa-sun"></i>
+                                    </div>
+                                    <div class="tip-content">
+                                        <h6>Programación Horaria</h6>
+                                        <p>Configura horarios laborales realistas para activar modos de ahorro
+                                            automático</p>
+                                    </div>
+                                </div>
+                                <div class="tip-card">
+                                    <div class="tip-icon">
+                                        <i class="fas fa-temperature-low"></i>
+                                    </div>
+                                    <div class="tip-content">
+                                        <h6>Control Térmico Inteligente</h6>
+                                        <p>Mantén la temperatura entre 22-24°C para máximo confort y eficiencia</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tip-category">
+                            <h5><i class="fas fa-chart-network"></i> Análisis de Datos</h5>
+                            <div class="tips-grid">
+                                <div class="tip-card">
+                                    <div class="tip-icon">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                    <div class="tip-content">
+                                        <h6>Identificación de Patrones</h6>
+                                        <p>Analiza los reportes semanales para detectar hábitos de consumo</p>
+                                    </div>
+                                </div>
+                                <div class="tip-card">
+                                    <div class="tip-icon">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="tip-content">
+                                        <h6>Automatización Prolog</h6>
+                                        <p>Utiliza el motor de reglas para crear políticas automáticas de ahorro</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Mejorado -->
+            <div class="help-footer-enhanced">
+                <div class="footer-actions">
+                    <button class="btn-help prev-btn" onclick="dashboard.navigateHelp('prev')">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </button>
+                    <button class="btn-help next-btn" onclick="dashboard.navigateHelp('next')">
+                        Siguiente <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="footer-info">
+                    <div class="progress-tracker">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="helpProgress"></div>
+                        </div>
+                        <span id="currentHelpSection">1</span> de <span id="totalHelpSections">7</span>
+                    </div>
+                    <button class="btn-help primary" onclick="dashboard.closeHelpModal()">
+                        <i class="fas fa-check"></i> Comenzar a Usar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal MPI - Procesamiento Distribuido -->
     <div id="modalMPI" class="modal-overlay paradigm-modal">
         <div class="modal glass-card large">
-            <h3><i class="fas fa-network-wired"></i> Procesamiento Distribuido - MPI</h3>
+            <div class="modal-header">
+                <h3><i class="fas fa-network-wired"></i> MPI - Procesamiento Distribuido</h3>
+                <button class="close-btn" onclick="dashboard.closeModal('modalMPI')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <div class="paradigm-content">
-                <div class="paradigm-info">
-                    <h4>Análisis Distribuido en Tiempo Real</h4>
-                    <p>Simulando procesamiento paralelo con 4 nodos virtuales</p>
+                <div class="paradigm-config">
+                    <h4>Configuración de Simulación</h4>
+                    <div class="config-grid">
+                        <div class="config-group">
+                            <label>Número de Nodos MPI:</label>
+                            <input type="range" id="mpiNodes" min="2" max="16" value="4" class="config-slider">
+                            <span id="mpiNodesValue">4 nodos</span>
+                        </div>
+                        <div class="config-group">
+                            <label>Tamaño de Dataset:</label>
+                            <select id="mpiDatasetSize" class="config-select">
+                                <option value="1000">Pequeño (1,000 puntos)</option>
+                                <option value="10000" selected>Mediano (10,000 puntos)</option>
+                                <option value="100000">Grande (100,000 puntos)</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label>Algoritmo de Análisis:</label>
+                            <select id="mpiAlgorithm" class="config-select">
+                                <option value="efficiency">Análisis de Eficiencia</option>
+                                <option value="clustering">Clustering de Consumo</option>
+                                <option value="prediction">Predicción de Tendencia</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="config-group advanced">
+                        <label for="mpiProblemSize">Tamaño del Problema:</label>
+                        <input type="range" id="mpiProblemSize" min="1000" max="500000" step="1000" value="10000" class="config-slider">
+                        <span id="mpiProblemSizeValue">Mediano (10K puntos)</span>
+                        <div class="control-hint">Ajusta el tamaño del dataset para probar escalabilidad</div>
+                    </div>
                 </div>
-                <div id="mpiResults" class="results-container">
-                    <!-- Resultados se cargarán aquí -->
+
+                <div class="simulation-controls">
+                    <button class="btn-glass primary" onclick="dashboard.runMPISimulation()">
+                        <i class="fas fa-play"></i> Ejecutar Simulación MPI
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.visualizeMPIResults()">
+                        <i class="fas fa-chart-bar"></i> Visualizar Resultados
+                    </button>
                 </div>
-                <div class="paradigm-actions">
-                    <button class="btn-glass" onclick="dashboard.runMPIAnalysis('efficiency')">
-                        <i class="fas fa-calculator"></i> Calcular Eficiencia
-                    </button>
-                    <button class="btn-glass" onclick="dashboard.runMPIAnalysis('anomaly')">
-                        <i class="fas fa-exclamation-triangle"></i> Detectar Anomalías
-                    </button>
-                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalMPI')">
-                        <i class="fas fa-times"></i> Cerrar
-                    </button>
+
+                <div class="simulation-results" id="mpiResults">
+                    <div class="results-placeholder">
+                        <i class="fas fa-microchip"></i>
+                        <p>Ejecuta la simulación para ver los resultados del procesamiento distribuido</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal OpenMP - Paralelización -->
     <div id="modalOpenMP" class="modal-overlay paradigm-modal">
         <div class="modal glass-card large">
-            <h3><i class="fas fa-code-branch"></i> Paralelización - OpenMP</h3>
+            <div class="modal-header">
+                <h3><i class="fas fa-code-branch"></i> OpenMP - Paralelización Multihilo</h3>
+                <button class="close-btn" onclick="dashboard.closeModal('modalOpenMP')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <div class="paradigm-content">
-                <div class="paradigm-info">
-                    <h4>Procesamiento Paralelo de Streams de Datos</h4>
-                    <p>Utilizando Web Workers para simular paralelismo</p>
+                <div class="paradigm-config">
+                    <h4>Configuración de Paralelización</h4>
+                    <div class="config-grid">
+                        <div class="config-group">
+                            <label>Número de Hilos:</label>
+                            <input type="range" id="openmpThreads" min="2" max="32" value="8" class="config-slider">
+                            <span id="openmpThreadsValue">8 hilos</span>
+                        </div>
+                        <div class="config-group">
+                            <label>Tipo de Paralelismo:</label>
+                            <select id="openmpType" class="config-select">
+                                <option value="data">Paralelismo de Datos</option>
+                                <option value="task">Paralelismo de Tareas</option>
+                                <option value="pipeline">Paralelismo Pipeline</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label>Chunk Size:</label>
+                            <input type="range" id="openmpChunk" min="1" max="100" value="10" class="config-slider">
+                            <span id="openmpChunkValue">10 elementos</span>
+                        </div>
+                    </div>
                 </div>
-                <div id="openmpResults" class="results-container">
-                    <!-- Resultados se cargarán aquí -->
+
+                <div class="simulation-controls">
+                    <button class="btn-glass primary" onclick="dashboard.runOpenMPSimulation()">
+                        <i class="fas fa-bolt"></i> Ejecutar Paralelización
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.benchmarkOpenMP()">
+                        <i class="fas fa-tachometer-alt"></i> Benchmark de Rendimiento
+                    </button>
                 </div>
-                <div class="paradigm-actions">
-                    <button class="btn-glass" onclick="dashboard.runOpenMPAnalysis('stats')">
-                        <i class="fas fa-chart-bar"></i> Estadísticas Avanzadas
-                    </button>
-                    <button class="btn-glass" onclick="dashboard.runOpenMPAnalysis('streams')">
-                        <i class="fas fa-wave-square"></i> Procesar Streams
-                    </button>
-                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalOpenMP')">
-                        <i class="fas fa-times"></i> Cerrar
-                    </button>
+
+                <div class="simulation-results" id="openmpResults">
+                    <div class="results-placeholder">
+                        <i class="fas fa-code-branch"></i>
+                        <p>Configura y ejecuta la paralelización para analizar el rendimiento</p>
+                    </div>
+                </div>
+                <div class="config-group advanced">
+                    <label for="openmpScheduling">Estrategia de Scheduling:</label>
+                    <select id="openmpScheduling" class="config-select">
+                        <!-- Options se llenan dinámicamente -->
+                    </select>
+                </div>
+                <div class="config-group advanced">
+                    <label for="openmpRegions">Región Paralela:</label>
+                    <select id="openmpRegions" class="config-select">
+                        <!-- Options se llenan dinámicamente -->
+                    </select>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="modalProlog" class="modal-overlay paradigm-modal">
-        <div class="modal glass-card large">
-            <h3><i class="fas fa-robot"></i> Sistema de Reglas - Prolog</h3>
-            <div class="paradigm-content">
-                <div class="paradigm-info">
-                    <h4>Motor de Reglas Inteligentes</h4>
-                    <p>Evaluando condiciones y generando recomendaciones automáticas</p>
-                </div>
-                <div id="prologResults" class="results-container">
-                    <!-- Resultados se cargarán aquí -->
-                </div>
-                <div class="paradigm-actions">
-                    <button class="btn-glass" onclick="dashboard.runPrologEvaluation()">
-                        <i class="fas fa-play"></i> Ejecutar Evaluación
-                    </button>
-                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalProlog')">
-                        <i class="fas fa-times"></i> Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- Modal Haskell - Análisis Funcional -->
     <div id="modalHaskell" class="modal-overlay paradigm-modal">
         <div class="modal glass-card large">
-            <h3><i class="fas fa-lambda"></i> Análisis Funcional - Haskell</h3>
+            <div class="modal-header">
+                <h3><i class="fas fa-lambda"></i> Haskell - Análisis Funcional</h3>
+                <button class="close-btn" onclick="dashboard.closeModal('modalHaskell')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <div class="paradigm-content">
-                <div class="paradigm-info">
-                    <h4>Programación Funcional Pura</h4>
-                    <p>Composición de funciones y análisis inmutable de datos</p>
+                <div class="paradigm-config">
+                    <h4>Configuración de Análisis Funcional</h4>
+                    <div class="config-grid">
+                        <div class="config-group">
+                            <label>Función de Transformación:</label>
+                            <select id="haskellFunction" class="config-select">
+                                <option value="efficiency">Cálculo de Eficiencia</option>
+                                <option value="trend">Análisis de Tendencia</option>
+                                <option value="optimization">Optimización Energética</option>
+                                <option value="composition">Composición Funcional</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label>Nivel de Pureza:</label>
+                            <input type="range" id="haskellPurity" min="1" max="10" value="8" class="config-slider">
+                            <span id="haskellPurityValue">Alta (8/10)</span>
+                        </div>
+                        <div class="config-group">
+                            <label>Estrategia de Evaluación:</label>
+                            <select id="haskellStrategy" class="config-select">
+                                <option value="lazy">Evaluación Perezosa</option>
+                                <option value="eager">Evaluación Estricta</option>
+                                <option value="parallel">Evaluación Paralela</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div id="haskellResults" class="results-container">
-                    <!-- Resultados se cargarán aquí -->
+
+                <div class="simulation-controls">
+                    <button class="btn-glass primary" onclick="dashboard.runHaskellAnalysis()">
+                        <i class="fas fa-project-diagram"></i> Ejecutar Análisis Funcional
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.showHaskellCode()">
+                        <i class="fas fa-code"></i> Ver Código Haskell
+                    </button>
                 </div>
-                <div class="paradigm-actions">
-                    <button class="btn-glass" onclick="dashboard.runHaskellAnalysis('efficiency')">
-                        <i class="fas fa-chart-line"></i> Análisis de Eficiencia
+                <div class="config-group advanced">
+                    <label for="haskellTransform">Transformación Funcional:</label>
+                    <select id="haskellTransform" class="config-select">
+                        <!-- Options se llenan dinámicamente -->
+                    </select>
+                </div>
+                <div class="config-group advanced">
+                    <label for="haskellAnalysisType">Tipo de Análisis:</label>
+                    <select id="haskellAnalysisType" class="config-select">
+                        <!-- Options se llenan dinámicamente -->
+                    </select>
+                </div>
+                <div class="simulation-results" id="haskellResults">
+                    <div class="results-placeholder">
+                        <i class="fas fa-lambda"></i>
+                        <p>Ejecuta el análisis funcional para ver transformaciones puras sobre los datos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Prolog - Sistema de Reglas -->
+    <div id="modalProlog" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <div class="modal-header">
+                <h3><i class="fas fa-robot"></i> Prolog - Sistema de Reglas Inteligentes</h3>
+                <button class="close-btn" onclick="dashboard.closeModal('modalProlog')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="paradigm-content">
+                <div class="paradigm-config">
+                    <h4>Configuración del Motor de Reglas</h4>
+                    <div class="config-grid">
+                        <div class="config-group">
+                            <label>Base de Conocimiento:</label>
+                            <select id="prologKnowledgeBase" class="config-select">
+                                <option value="efficiency">Reglas de Eficiencia</option>
+                                <option value="optimization">Reglas de Optimización</option>
+                                <option value="anomaly">Detección de Anomalías</option>
+                                <option value="recommendation">Sistema de Recomendaciones</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label>Nivel de Inferencia:</label>
+                            <input type="range" id="prologInference" min="1" max="5" value="3" class="config-slider">
+                            <span id="prologInferenceValue">Medio (3/5)</span>
+                        </div>
+                        <div class="config-group">
+                            <label>Estrategia de Búsqueda:</label>
+                            <select id="prologStrategy" class="config-select">
+                                <option value="depth">Búsqueda en Profundidad</option>
+                                <option value="breadth">Búsqueda en Anchura</option>
+                                <option value="heuristic">Búsqueda Heurística</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="simulation-controls">
+                    <button class="btn-glass primary" onclick="dashboard.runPrologEngine()">
+                        <i class="fas fa-brain"></i> Ejecutar Motor de Reglas
                     </button>
-                    <button class="btn-glass" onclick="dashboard.runHaskellAnalysis('trend')">
-                        <i class="fas fa-project-diagram"></i> Análisis de Tendencia
+                    <button class="btn-glass" onclick="dashboard.showPrologRules()">
+                        <i class="fas fa-list"></i> Ver Base de Reglas
                     </button>
-                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalHaskell')">
-                        <i class="fas fa-times"></i> Cerrar
+                </div>
+
+                <div class="config-group advanced">
+                    <label for="comparativeScenario">Escenario de Prueba:</label>
+                    <select id="comparativeScenario" class="config-select">
+                        <!-- Options se llenan dinámicamente -->
+                    </select>
+                </div>               
+
+                <div class="simulation-results" id="prologResults">
+                    <div class="results-placeholder">
+                        <i class="fas fa-robot"></i>
+                        <p>Ejecuta el motor de reglas para obtener inferencias inteligentes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Análisis Comparativo -->
+    <div id="modalComparative" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card x-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-chess-board"></i> Análisis Comparativo Multi-Paradigma</h3>
+                <button class="close-btn" onclick="dashboard.closeModal('modalComparative')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="paradigm-content">
+                <div class="comparative-config">
+                    <h4>Selecciona Paradigmas a Comparar</h4>
+                    <div class="paradigm-selection">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="compareMPI" checked> MPI
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="compareOpenMP" checked> OpenMP
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="compareHaskell" checked> Haskell
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="compareProlog" checked> Prolog
+                        </label>
+                    </div>
+
+                    <div class="metric-selection">
+                        <label>Métrica de Comparación:</label>
+                        <select id="comparativeMetric" class="config-select">
+                            <option value="performance">Rendimiento</option>
+                            <option value="efficiency">Eficiencia</option>
+                            <option value="accuracy">Precisión</option>
+                            <option value="scalability">Escalabilidad</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="simulation-controls">
+                    <button class="btn-glass primary" onclick="dashboard.runComparativeAnalysis()">
+                        <i class="fas fa-chart-line"></i> Ejecutar Análisis Comparativo
                     </button>
+                    <button class="btn-glass" onclick="dashboard.exportComparativeReport()">
+                        <i class="fas fa-download"></i> Exportar Reporte
+                    </button>
+                </div>
+
+                <div class="comparative-results" id="comparativeResults">
+                    <div class="results-placeholder">
+                        <i class="fas fa-balance-scale"></i>
+                        <p>Ejecuta el análisis comparativo para ver la comparación entre paradigmas</p>
+                    </div>
                 </div>
             </div>
         </div>

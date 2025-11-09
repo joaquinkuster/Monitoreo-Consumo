@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const url = require('url');
 const http = require('http');
 
-console.log('🔌 Iniciando servidor WebSocket mejorado...');
+console.log('🔌 Iniciando servidor WebSocket...');
 
 // Crear servidor HTTP para WebSockets en puerto 8081
 const server = http.createServer();
@@ -304,7 +304,7 @@ wssParams.on('connection', (ws) => {
 
 
 server.listen(PORT_WS, () => {
-    console.log('✅ Servidor WebSocket mejorado escuchando en puerto', PORT_WS);
+    console.log('✅ Servidor WebSocket escuchando en puerto', PORT_WS);
     console.log('✅ Servidores WebSocket listos:');
     console.log('   📊 ws://localhost:8081/ws/resumenes');
     console.log('   🔔 ws://localhost:8081/ws/avisos');
