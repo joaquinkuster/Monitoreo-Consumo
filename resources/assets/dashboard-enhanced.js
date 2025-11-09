@@ -10,17 +10,98 @@ class DashboardEnhanced {
         this.init();
     }
 
+    // Asegurarse de que los gráficos se inicialicen después de que el DOM esté listo
+    // En el método init(), agrega:
     init() {
         this.connectWebSockets();
         this.setupEventListeners();
-        this.initializeCharts();
+
+        // Inicializar navbar y footer
+        this.setupNavbarInteractions();
+        this.setupFooter();
+
+        setTimeout(() => {
+            this.initializeCharts();
+        }, 100);
+
         this.loadInitialData();
         this.startRealTimeUpdates();
+
+        setInterval(() => {
+            this.updateAdvancedStats();
+        }, 10000);
+    }
+
+    // Nuevos métodos para navbar y footer
+    setupNavbarInteractions() {
+        // Smooth scroll para enlaces del navbar
+        document.querySelectorAll('.nav-dropdown-content a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = e.target.getAttribute('href');
+                this.showSectionInfo(target);
+            });
+        });
+    }
+
+    showSectionInfo(sectionId) {
+        const sectionNames = {
+            '#mpi': 'Procesamiento Distribuido con MPI',
+            '#openmp': 'Paralelización con OpenMP',
+            '#pascal': 'Concurrencia con Pascal FC',
+            '#haskell': 'Análisis Funcional con Haskell',
+            '#prolog': 'Sistema de Reglas con Prolog',
+            '#firebase': 'Base de Datos NoSQL con Firebase',
+            '#ml': 'Machine Learning Predictivo',
+            '#gamification': 'Sistema de Gamificación'
+        };
+
+        const sectionName = sectionNames[sectionId] || 'Sección Innovadora';
+        this.showToast(`🔬 ${sectionName} - Funcionalidad en desarrollo`, 'info');
+    }
+
+    setupFooter() {
+        // Actualizar fecha de última actualización
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        if (lastUpdateEl) {
+            lastUpdateEl.textContent = new Date().toLocaleDateString('es-AR');
+        }
+
+        // Agregar efecto de escritura al footer
+        this.typeWriterEffect();
+    }
+
+    typeWriterEffect() {
+        const texts = [
+            "Monitoreo Inteligente",
+            "Optimización Energética",
+            "Tecnología Avanzada",
+            "Paradigmas Innovadores"
+        ];
+
+        let count = 0;
+        let index = 0;
+        let currentText = '';
+        let letter = '';
+
+        setInterval(() => {
+            if (count === texts.length) {
+                count = 0;
+            }
+            currentText = texts[count];
+            letter = currentText.slice(0, ++index);
+
+            // Puedes mostrar esto en algún elemento del footer si quieres
+            if (index === currentText.length) {
+                count++;
+                index = 0;
+            }
+        }, 200);
     }
 
     connectWebSockets() {
         const endpoints = [
-            'resumenes', 'avisos', 'dispositivos'
+            'resumenes', 'avisos', 'dispositivos', 'params'
         ];
 
         endpoints.forEach(endpoint => {
@@ -30,7 +111,7 @@ class DashboardEnhanced {
 
     connectToWebSocket(endpoint) {
         const socket = new WebSocket(`${this.WS_BASE_URL}/ws/${endpoint}`);
-        
+
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -69,14 +150,19 @@ class DashboardEnhanced {
             case 'dispositivos':
                 this.handleDispositivos(data.data);
                 break;
+            case 'params':
+                console.log('📝 Configuración recibida:', data.data);
+                break;
         }
     }
 
+    // MODIFICAR handleResumenes para incluir las nuevas estadísticas
     handleResumenes(resumenesData) {
         console.log('📊 Datos de resumen recibidos:', resumenesData);
         Object.assign(this.resumenes, resumenesData);
         this.renderOficinas();
         this.updateGlobalStats();
+        this.updateAdvancedStats(); // ← AGREGAR ESTA LÍNEA
         this.updateQuickStats();
         this.updateCharts();
     }
@@ -97,6 +183,7 @@ class DashboardEnhanced {
         this.updateQuickStats();
     }
 
+    // Reemplazar el método renderOficinas
     renderOficinas() {
         const grid = document.getElementById('sectoresGrid');
         if (!grid) {
@@ -106,117 +193,309 @@ class DashboardEnhanced {
 
         const oficinasIds = Object.keys(this.resumenes);
         console.log(`🏢 Oficinas a renderizar: ${oficinasIds.length}`, oficinasIds);
-        
+
         if (oficinasIds.length === 0) {
             grid.innerHTML = `
-                <div class="loading-card glass-card">
-                    <h3><i class="fas fa-building"></i> Esperando datos...</h3>
-                    <p>No hay oficinas activas en este momento</p>
-                </div>
-            `;
+            <div class="loading-card glass-card">
+                <h3><i class="fas fa-building"></i> Esperando datos...</h3>
+                <p>No hay oficinas activas en este momento</p>
+            </div>
+        `;
             return;
         }
 
         grid.innerHTML = oficinasIds.map(oficinaId => {
             const resumen = this.resumenes[oficinaId];
             const dispositivo = this.dispositivos[oficinaId];
-            
-            return this.createOfficeCard(oficinaId, resumen, dispositivo);
+
+            return this.createOfficeCardSidebar(oficinaId, resumen, dispositivo);
         }).join('');
 
-        console.log('✅ Oficinas renderizadas correctamente');
+        console.log('✅ Oficinas renderizadas correctamente en sidebar');
     }
 
-    createOfficeCard(oficinaId, resumen, dispositivo) {
-        const estado = this.calcularEstadoOficina(resumen);
-        const eficiencia = this.calcularEficiencia(resumen);
-        
+    // Reemplazar el método createOfficeCardSidebar con versión detallada
+    createOfficeCardSidebar(oficinaId, resumen, dispositivo) {
+        const eficiencia = this.calculateOfficeEfficiency(resumen);
+        const eficienciaClase = this.getEfficiencyClass(eficiencia);
+        const tendencia = this.calculateTrend(resumen);
+        const tiempoActivo = resumen.tiempo_presente || 0;
+        const horas = Math.floor(tiempoActivo / 60);
+        const minutos = tiempoActivo % 60;
+
         return `
-            <div class="office-card glass-card animate-in">
-                <div class="office-header">
-                    <h3 class="office-title">
+        <div class="office-card-detailed animate-in">
+            <!-- Header -->
+            <div class="office-header-detailed">
+                <div>
+                    <h3 class="office-title-detailed">
                         <i class="fas fa-building"></i> Oficina ${oficinaId}
-                        <span class="eficiencia-badge ${eficiencia.clase}">
-                            <i class="${eficiencia.icono}"></i> ${eficiencia.texto}
-                        </span>
+                        <div class="efficiency-badge-detailed ${eficienciaClase}">
+                            <i class="fas fa-chart-line"></i> ${eficiencia.toFixed(1)}%
+                        </div>
                     </h3>
-                    <div class="office-status">
-                        <div class="status-dot ${estado}"></div>
-                        <span class="status-text">${this.getEstadoTexto(estado)}</span>
+                </div>
+                <div class="office-status-detailed">
+                    <div class="status-dot-detailed ${this.getStatusClass(resumen)}"></div>
+                    <span class="status-text-detailed">${this.getStatusText(resumen)}</span>
+                </div>
+            </div>
+            
+            <!-- Métricas Principales -->
+            <div class="office-metrics-detailed">
+                <div class="metric-card-detailed">
+                    <i class="fas fa-bolt metric-icon-detailed electric"></i>
+                    <div class="metric-value-detailed">${(resumen.corriente_a || 0).toFixed(2)}A</div>
+                    <div class="metric-label-detailed">Corriente</div>
+                    <div class="metric-subvalue">
+                        <span class="trend-indicator ${tendencia.corriente}">
+                            <i class="fas fa-${tendencia.corriente === 'trend-up' ? 'arrow-up' : tendencia.corriente === 'trend-down' ? 'arrow-down' : 'minus'}"></i>
+                        </span>
+                        Corriente Actual
                     </div>
                 </div>
                 
-                <div class="office-data-grid">
-                    <div class="data-card">
-                        <i class="fas fa-bolt data-icon electric"></i>
-                        <div class="data-content">
-                            <span class="data-label">Corriente</span>
-                            <span class="data-value">${resumen.corriente_a ? resumen.corriente_a.toFixed(2) : '0'} A</span>
-                        </div>
-                    </div>
-                    
-                    <div class="data-card">
-                        <i class="fas fa-chart-line data-icon consumption"></i>
-                        <div class="data-content">
-                            <span class="data-label">Consumo Actual</span>
-                            <span class="data-value">${resumen.consumo_kvh ? resumen.consumo_kvh.toFixed(2) : '0'} kWh</span>
-                        </div>
-                    </div>
-                    
-                    <div class="data-card">
-                        <i class="fas fa-chart-bar data-icon total"></i>
-                        <div class="data-content">
-                            <span class="data-label">Consumo Total</span>
-                            <span class="data-value">${resumen.consumo_total_kvh ? resumen.consumo_total_kvh.toFixed(2) : '0'} kWh</span>
-                        </div>
-                    </div>
-                    
-                    <div class="data-card">
-                        <i class="fas fa-thermometer-half data-icon temp"></i>
-                        <div class="data-content">
-                            <span class="data-label">Temperatura</span>
-                            <span class="data-value">${resumen.min_temp ? resumen.min_temp.toFixed(1) : '0'}° / ${resumen.max_temp ? resumen.max_temp.toFixed(1) : '0'}°</span>
-                        </div>
-                    </div>
-                    
-                    <div class="data-card">
-                        <i class="fas fa-user-clock data-icon time"></i>
-                        <div class="data-content">
-                            <span class="data-label">Tiempo Activo</span>
-                            <span class="data-value">${Math.floor((resumen.tiempo_presente || 0) / 60)}m</span>
-                        </div>
-                    </div>
-                    
-                    <div class="data-card">
-                        <i class="fas fa-money-bill-wave data-icon cost"></i>
-                        <div class="data-content">
-                            <span class="data-label">Costo Estimado</span>
-                            <span class="data-value">$${resumen.monto_estimado ? resumen.monto_estimado.toFixed(2) : '0'}</span>
-                        </div>
+                <div class="metric-card-detailed">
+                    <i class="fas fa-chart-line metric-icon-detailed consumption"></i>
+                    <div class="metric-value-detailed">${(resumen.consumo_kvh || 0).toFixed(2)}</div>
+                    <div class="metric-label-detailed">Consumo Actual</div>
+                    <div class="metric-subvalue">kWh por hora</div>
+                </div>
+                
+                <div class="metric-card-detailed">
+                    <i class="fas fa-chart-bar metric-icon-detailed total"></i>
+                    <div class="metric-value-detailed">${(resumen.consumo_total_kvh || 0).toFixed(0)}</div>
+                    <div class="metric-label-detailed">Consumo Total</div>
+                    <div class="metric-subvalue">kWh acumulados</div>
+                </div>
+                
+                <div class="metric-card-detailed">
+                    <i class="fas fa-thermometer-half metric-icon-detailed temp"></i>
+                    <div class="metric-value-detailed">${((resumen.min_temp + resumen.max_temp) / 2 || 0).toFixed(1)}°</div>
+                    <div class="metric-label-detailed">Temperatura</div>
+                    <div class="metric-subvalue">
+                        ${(resumen.min_temp || 0).toFixed(1)}° - ${(resumen.max_temp || 0).toFixed(1)}°
                     </div>
                 </div>
                 
-                <div class="devices-section">
-                    <h4><i class="fas fa-plug"></i> Control de Dispositivos</h4>
-                    <div class="devices-grid">
-                        ${this.createDeviceToggle(oficinaId, 'luces', dispositivo)}
-                        ${this.createDeviceToggle(oficinaId, 'aire', dispositivo)}
-                    </div>
+                <div class="metric-card-detailed">
+                    <i class="fas fa-user-clock metric-icon-detailed time"></i>
+                    <div class="metric-value-detailed">${horas}h ${minutos}m</div>
+                    <div class="metric-label-detailed">Tiempo Activo</div>
+                    <div class="metric-subvalue">Presencia detectada</div>
                 </div>
                 
-                <div class="office-footer">
-                    <span class="last-update">
-                        <i class="fas fa-clock"></i> 
-                        ${this.formatearFecha(resumen.timestamp)}
-                    </span>
-                    <div class="office-actions">
-                        <button class="btn-small" onclick="dashboard.mostrarDetalles('${oficinaId}')">
-                            <i class="fas fa-chart-bar"></i> Detalles
-                        </button>
+                <div class="metric-card-detailed">
+                    <i class="fas fa-money-bill-wave metric-icon-detailed cost"></i>
+                    <div class="metric-value-detailed">$${(resumen.monto_estimado || 0).toFixed(2)}</div>
+                    <div class="metric-label-detailed">Costo Estimado</div>
+                    <div class="metric-subvalue">Por hora actual</div>
+                </div>
+            </div>
+            
+            <!-- Información Adicional -->
+            <div class="office-additional-info">
+                <div class="info-item-detailed">
+                    <span class="info-label-detailed">Costo Total:</span>
+                    <span class="info-value-detailed">$${(resumen.monto_total || 0).toFixed(2)}</span>
+                </div>
+                <div class="info-item-detailed">
+                    <span class="info-label-detailed">Temp Mínima:</span>
+                    <span class="info-value-detailed">${(resumen.min_temp || 0).toFixed(1)}°C</span>
+                </div>
+                <div class="info-item-detailed">
+                    <span class="info-label-detailed">Temp Máxima:</span>
+                    <span class="info-value-detailed">${(resumen.max_temp || 0).toFixed(1)}°C</span>
+                </div>
+                <div class="info-item-detailed">
+                    <span class="info-label-detailed">Eficiencia:</span>
+                    <span class="info-value-detailed">${eficiencia.toFixed(1)}%</span>
+                </div>
+                <div class="info-item-detailed">
+                    <span class="info-label-detailed">Estado:</span>
+                    <span class="info-value-detailed ${this.getStatusClass(resumen)}">${this.getStatusText(resumen)}</span>
+                </div>
+                <div class="info-item-detailed">
+                    <span class="info-label-detailed">Última Actualización:</span>
+                    <span class="info-value-detailed">${this.formatearFecha(resumen.timestamp)}</span>
+                </div>
+            </div>
+            
+            <!-- Control de Dispositivos -->
+            <div class="devices-section-detailed">
+                <h4><i class="fas fa-plug"></i> Control de Dispositivos</h4>
+                <div class="devices-grid-detailed">
+                    <div class="device-card-detailed ${dispositivo.luces ? 'active' : 'inactive'}">
+                        <div class="device-info-detailed">
+                            <i class="fas fa-lightbulb device-icon-detailed luces ${dispositivo.luces ? 'on' : 'off'}"></i>
+                            <span class="device-name-detailed">Sistema de Iluminación</span>
+                        </div>
+                        <div class="device-status-detailed ${dispositivo.luces ? 'on' : 'off'}">
+                            ${dispositivo.luces ? 'ENCENDIDO' : 'APAGADO'}
+                        </div>
+                    </div>
+                    
+                    <div class="device-card-detailed ${dispositivo.aire ? 'active' : 'inactive'}">
+                        <div class="device-info-detailed">
+                            <i class="fas fa-snowflake device-icon-detailed aire ${dispositivo.aire ? 'on' : 'off'}"></i>
+                            <span class="device-name-detailed">Aire Acondicionado</span>
+                        </div>
+                        <div class="device-status-detailed ${dispositivo.aire ? 'on' : 'off'}">
+                            ${dispositivo.aire ? 'ENCENDIDO' : 'APAGADO'}
+                        </div>
                     </div>
                 </div>
             </div>
-        `;
+            
+            <!-- Footer -->
+            <div class="office-footer-detailed">
+                <div class="last-update-detailed">
+                    <i class="fas fa-clock"></i>
+                    Actualizado: ${this.formatearFecha(resumen.timestamp)}
+                </div>
+                <div class="office-actions-detailed">
+                    <button class="btn-detailed" onclick="dashboard.toggleDispositivo('${oficinaId}', 'luces', ${!dispositivo.luces})">
+                        <i class="fas fa-lightbulb"></i>
+                        ${dispositivo.luces ? 'Apagar' : 'Encender'} Luces
+                    </button>
+                    <button class="btn-detailed" onclick="dashboard.toggleDispositivo('${oficinaId}', 'aire', ${!dispositivo.aire})">
+                        <i class="fas fa-snowflake"></i>
+                        ${dispositivo.aire ? 'Apagar' : 'Encender'} Aire
+                    </button>
+                    <button class="btn-detailed primary" onclick="dashboard.mostrarDetalles('${oficinaId}')">
+                        <i class="fas fa-chart-bar"></i>
+                        Análisis
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
+    createOfficeCard(oficinaId, resumen, dispositivo) {
+        const eficiencia = this.calculateOfficeEfficiency(resumen);
+        const eficienciaClase = this.getEfficiencyClass(eficiencia);
+        const tendencia = this.calculateTrend(resumen);
+
+        return `
+        <div class="office-card-compact animate-in">
+            <div class="office-header-compact">
+                <div>
+                    <h3 class="office-title-compact">
+                        <i class="fas fa-building"></i> Oficina ${oficinaId}
+                    </h3>
+                    <div class="efficiency-score-compact ${eficienciaClase}">
+                        <i class="fas fa-chart-line"></i> ${eficiencia.toFixed(1)}%
+                    </div>
+                </div>
+                <div class="office-status-compact">
+                    <div class="status-indicator-compact ${this.getStatusClass(resumen)}"></div>
+                    <span class="status-text">${this.getStatusText(resumen)}</span>
+                </div>
+            </div>
+            
+            <div class="office-metrics-grid">
+                <div class="metric-item">
+                    <i class="fas fa-bolt metric-icon electric"></i>
+                    <div class="metric-value">${(resumen.corriente_a || 0).toFixed(2)}A</div>
+                    <div class="metric-label">Corriente</div>
+                    <div class="metric-trend ${tendencia.corriente}">
+                        <i class="fas fa-${tendencia.corriente === 'trend-up' ? 'arrow-up' : tendencia.corriente === 'trend-down' ? 'arrow-down' : 'minus'}"></i>
+                    </div>
+                </div>
+                
+                <div class="metric-item">
+                    <i class="fas fa-chart-line metric-icon consumption"></i>
+                    <div class="metric-value">${(resumen.consumo_kvh || 0).toFixed(2)}</div>
+                    <div class="metric-label">kWh/h</div>
+                    <div class="metric-trend ${tendencia.consumo}">
+                        <i class="fas fa-${tendencia.consumo === 'trend-up' ? 'arrow-up' : tendencia.consumo === 'trend-down' ? 'arrow-down' : 'minus'}"></i>
+                    </div>
+                </div>
+                
+                <div class="metric-item">
+                    <i class="fas fa-thermometer-half metric-icon temp"></i>
+                    <div class="metric-value">${((resumen.min_temp + resumen.max_temp) / 2 || 0).toFixed(1)}°</div>
+                    <div class="metric-label">Temperatura</div>
+                    <div class="metric-trend ${tendencia.temperatura}">
+                        <i class="fas fa-${tendencia.temperatura === 'trend-up' ? 'arrow-up' : tendencia.temperatura === 'trend-down' ? 'arrow-down' : 'minus'}"></i>
+                    </div>
+                </div>
+                
+                <div class="metric-item">
+                    <i class="fas fa-clock metric-icon time"></i>
+                    <div class="metric-value">${Math.floor((resumen.tiempo_presente || 0) / 60)}m</div>
+                    <div class="metric-label">Activo</div>
+                </div>
+                
+                <div class="metric-item">
+                    <i class="fas fa-money-bill-wave metric-icon cost"></i>
+                    <div class="metric-value">$${(resumen.monto_estimado || 0).toFixed(2)}</div>
+                    <div class="metric-label">Costo/h</div>
+                </div>
+                
+                <div class="metric-item">
+                    <i class="fas fa-chart-bar metric-icon total"></i>
+                    <div class="metric-value">${(resumen.consumo_total_kvh || 0).toFixed(0)}</div>
+                    <div class="metric-label">Total kWh</div>
+                </div>
+            </div>
+            
+            <div class="office-devices-compact">
+                <div class="devices-status">
+                    <div class="device-status ${dispositivo.luces ? 'on' : 'off'}">
+                        <i class="fas fa-lightbulb"></i> Luces
+                    </div>
+                    <div class="device-status ${dispositivo.aire ? 'on' : 'off'}">
+                        <i class="fas fa-snowflake"></i> Aire
+                    </div>
+                </div>
+                <div class="office-actions-compact">
+                    <button class="btn-small" onclick="dashboard.toggleDispositivo('${oficinaId}', 'luces', ${!dispositivo.luces})">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                    <button class="btn-small" onclick="dashboard.mostrarDetalles('${oficinaId}')">
+                        <i class="fas fa-chart-bar"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
+    getEfficiencyClass(eficiencia) {
+        if (eficiencia >= 85) return 'excellent';
+        if (eficiencia >= 70) return 'good';
+        if (eficiencia >= 50) return 'average';
+        return 'poor';
+    }
+
+    getStatusClass(resumen) {
+        const corriente = resumen.corriente_a || 0;
+        if (corriente > 15) return 'critical';
+        if (corriente > 10) return 'warning';
+        return 'optimal';
+    }
+
+    getStatusText(resumen) {
+        const corriente = resumen.corriente_a || 0;
+        if (corriente > 15) return 'Crítico';
+        if (corriente > 10) return 'Alerta';
+        return 'Óptimo';
+    }
+
+    // Mejorar el método calculateTrend
+    calculateTrend(resumen) {
+        // En un sistema real, aquí compararías con datos históricos
+        // Por ahora simulamos tendencias basadas en valores actuales
+        const corriente = resumen.corriente_a || 0;
+        const consumo = resumen.consumo_kvh || 0;
+
+        return {
+            corriente: corriente > 8 ? 'trend-up' : corriente < 4 ? 'trend-down' : 'trend-stable',
+            consumo: consumo > 1.2 ? 'trend-up' : consumo < 0.8 ? 'trend-down' : 'trend-stable',
+            temperatura: (resumen.max_temp || 0) > 26 ? 'trend-up' : 'trend-stable'
+        };
     }
 
     createDeviceToggle(oficinaId, dispositivo, dispositivoData) {
@@ -224,7 +503,7 @@ class DashboardEnhanced {
         const label = dispositivo === 'aire' ? 'Aire Acond.' : 'Luces';
         const icon = dispositivo === 'aire' ? 'fas fa-snowflake' : 'fas fa-lightbulb';
         const color = estado ? 'var(--success)' : 'var(--text-secondary)';
-        
+
         return `
             <div class="device-toggle ${estado ? 'active' : ''}">
                 <div class="device-info">
@@ -242,7 +521,7 @@ class DashboardEnhanced {
 
     calcularEstadoOficina(resumen) {
         if (!resumen.corriente_a) return 'warning';
-        
+
         if (resumen.corriente_a > 15) return 'danger';
         if (resumen.corriente_a > 10) return 'warning';
         return 'success';
@@ -268,18 +547,19 @@ class DashboardEnhanced {
     toggleDispositivo(oficina, dispositivo, estado) {
         console.log(`Cambiando ${dispositivo} en ${oficina} a ${estado}`);
         this.showToast(`${dispositivo} ${estado ? 'activado' : 'desactivado'} en Oficina ${oficina}`, 'success');
-        
+
         // Actualizar estado local
         if (!this.dispositivos[oficina]) {
             this.dispositivos[oficina] = {};
         }
         this.dispositivos[oficina][dispositivo] = estado;
-        
+
         // Re-renderizar
         this.renderOficinas();
         this.updateQuickStats();
     }
 
+    // Actualizar el método updateQuickStats para el nuevo diseño
     updateQuickStats() {
         const grid = document.getElementById('quickStatsGrid');
         if (!grid) return;
@@ -293,37 +573,36 @@ class DashboardEnhanced {
         grid.innerHTML = oficinasIds.map(oficinaId => {
             const resumen = this.resumenes[oficinaId];
             const dispositivo = this.dispositivos[oficinaId];
-            const estado = this.calcularEstadoOficina(resumen);
-            
+            const estado = this.getStatusClass(resumen);
+
             return `
-                <div class="quick-stat-card ${estado}">
-                    <div class="quick-stat-header">
-                        <h4><i class="fas fa-building"></i> ${oficinaId}</h4>
-                        <div class="status-indicator ${estado}"></div>
+            <div class="quick-stat-card-sidebar">
+                <div class="quick-stat-header-sidebar">
+                    <h4>${oficinaId}</h4>
+                    <div class="status-indicator-compact ${estado}"></div>
+                </div>
+                <div class="quick-stat-data-sidebar">
+                    <div class="stat-item-sidebar">
+                        <i class="fas fa-bolt"></i>
+                        <span>${(resumen.corriente_a || 0).toFixed(1)}A</span>
                     </div>
-                    <div class="quick-stat-data">
-                        <div class="stat-item">
-                            <i class="fas fa-bolt"></i>
-                            <span>${resumen.corriente_a ? resumen.corriente_a.toFixed(1) : '0'}A</span>
-                        </div>
-                        <div class="stat-item">
-                            <i class="fas fa-chart-line"></i>
-                            <span>${resumen.consumo_kvh ? resumen.consumo_kvh.toFixed(1) : '0'}kWh</span>
-                        </div>
-                        <div class="stat-item">
-                            <i class="fas fa-snowflake"></i>
-                            <span>${dispositivo && dispositivo.aire ? 'ON' : 'OFF'}</span>
-                        </div>
-                        <div class="stat-item">
-                            <i class="fas fa-lightbulb"></i>
-                            <span>${dispositivo && dispositivo.luces ? 'ON' : 'OFF'}</span>
-                        </div>
+                    <div class="stat-item-sidebar">
+                        <i class="fas fa-chart-line"></i>
+                        <span>${(resumen.consumo_kvh || 0).toFixed(1)}kWh</span>
+                    </div>
+                    <div class="stat-item-sidebar">
+                        <i class="fas fa-lightbulb ${dispositivo.luces ? 'on' : 'off'}"></i>
+                        <span>${dispositivo.luces ? 'ON' : 'OFF'}</span>
+                    </div>
+                    <div class="stat-item-sidebar">
+                        <i class="fas fa-snowflake ${dispositivo.aire ? 'on' : 'off'}"></i>
+                        <span>${dispositivo.aire ? 'ON' : 'OFF'}</span>
                     </div>
                 </div>
-            `;
+            </div>
+        `;
         }).join('');
     }
-
     updateGlobalStats() {
         let totalConsumo = 0;
         let totalCosto = 0;
@@ -350,7 +629,7 @@ class DashboardEnhanced {
         if (totalConsumptionEl) totalConsumptionEl.textContent = `${totalConsumo.toFixed(2)} kWh`;
         if (totalCostEl) totalCostEl.textContent = `$${totalCosto.toFixed(2)}`;
         if (activeOfficesEl) activeOfficesEl.textContent = oficinasActivas;
-        
+
         // Calcular ahorro (simulado)
         const ahorro = Math.max(0, 100 - (totalConsumo / (oficinasActivas * 100)) * 100);
         if (monthlySavingsEl) monthlySavingsEl.textContent = `${ahorro.toFixed(1)}%`;
@@ -366,11 +645,151 @@ class DashboardEnhanced {
         console.log(`📊 Estadísticas actualizadas: ${oficinasActivas} oficinas, ${totalConsumo.toFixed(2)} kWh`);
     }
 
+    updateAdvancedStats() {
+        let totalConsumption = 0;
+        let totalCost = 0;
+        let maxCurrent = 0;
+        let totalTemperature = 0;
+        let officeCount = 0;
+        let devicesOnCount = 0;
+        let totalEfficiency = 0;
+
+        Object.values(this.resumenes).forEach(resumen => {
+            if (resumen.consumo_total_kvh) {
+                totalConsumption += resumen.consumo_total_kvh;
+                totalCost += resumen.monto_total || 0;
+                maxCurrent = Math.max(maxCurrent, resumen.corriente_a || 0);
+                totalTemperature += ((resumen.min_temp || 0) + (resumen.max_temp || 0)) / 2;
+                officeCount++;
+
+                // Calcular eficiencia individual
+                const efficiency = this.calculateOfficeEfficiency(resumen);
+                totalEfficiency += efficiency;
+            }
+        });
+
+        Object.values(this.dispositivos).forEach(dispositivo => {
+            if (dispositivo.luces) devicesOnCount++;
+            if (dispositivo.aire) devicesOnCount++;
+        });
+
+        // Actualizar elementos del DOM
+        this.updateElement('avgConsumption', `${(totalConsumption / Math.max(officeCount, 1)).toFixed(2)} kWh`);
+        this.updateElement('avgTemperature', `${(totalTemperature / Math.max(officeCount, 1)).toFixed(1)}°C`);
+        this.updateElement('maxCurrent', `${maxCurrent.toFixed(2)} A`);
+        this.updateElement('globalEfficiency', `${(totalEfficiency / Math.max(officeCount, 1)).toFixed(1)}%`);
+        this.updateElement('activeAlerts', this.eventos.length);
+        this.updateElement('devicesOn', devicesOnCount);
+
+        // Actualizar estadísticas adicionales
+        this.updateAdditionalStats();
+    }
+
+    updateElement(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    }
+
+    calculateOfficeEfficiency(resumen) {
+        const consumo = resumen.consumo_kvh || 0;
+        const corriente = resumen.corriente_a || 0;
+        const tiempo = resumen.tiempo_presente || 1;
+
+        // Fórmula de eficiencia mejorada
+        const baseEfficiency = Math.max(0, 100 - (consumo / tiempo) * 10);
+        const currentEfficiency = Math.max(0, 100 - (corriente * 2));
+
+        return (baseEfficiency + currentEfficiency) / 2;
+    }
+
+    updateAdditionalStats() {
+        // Calcular estadísticas adicionales
+        const stats = this.calculateAdvancedStatistics();
+
+        // Podrías agregar más elementos HTML para mostrar estas stats
+        console.log('📈 Estadísticas avanzadas:', stats);
+    }
+
+    calculateAdvancedStatistics() {
+        const offices = Object.values(this.resumenes);
+        if (offices.length === 0) return {};
+
+        const consumos = offices.map(o => o.consumo_kvh || 0);
+        const corrientes = offices.map(o => o.corriente_a || 0);
+        const temperaturas = offices.flatMap(o => [o.min_temp || 0, o.max_temp || 0]);
+
+        return {
+            consumoTotal: consumos.reduce((a, b) => a + b, 0),
+            consumoMaximo: Math.max(...consumos),
+            consumoMinimo: Math.min(...consumos),
+            corrientePromedio: corrientes.reduce((a, b) => a + b, 0) / corrientes.length,
+            temperaturaPromedio: temperaturas.reduce((a, b) => a + b, 0) / temperaturas.length,
+            oficinasConAlerta: offices.filter(o => (o.corriente_a || 0) > 10).length
+        };
+    }
+    // Agregar método getEfficiencyClass
+    getEfficiencyClass(eficiencia) {
+        if (eficiencia >= 90) return 'excellent';
+        if (eficiencia >= 80) return 'good';
+        if (eficiencia >= 60) return 'average';
+        return 'poor';
+    }
+
     initializeCharts() {
-        this.initializeMainChart();
-        this.initializeDeviceChart();
-        this.initializeTempChart();
-        this.initializeOLAPChart();
+        console.log('🎯 Inicializando gráficos...');
+
+        // Solo inicializar gráficos que existen en el DOM
+        try {
+            this.initializeMainChart();
+            console.log('✅ Gráfico principal inicializado');
+        } catch (error) {
+            console.error('❌ Error en gráfico principal:', error);
+        }
+
+        try {
+            this.initializeOfficeChart();
+            console.log('✅ Gráfico de oficinas inicializado');
+        } catch (error) {
+            console.error('❌ Error en gráfico de oficinas:', error);
+        }
+
+        try {
+            this.initializeTempChart();
+            console.log('✅ Gráfico de temperaturas inicializado');
+        } catch (error) {
+            console.error('❌ Error en gráfico de temperaturas:', error);
+        }
+
+        // NO inicializar estos gráficos si no existen en el DOM
+        console.log('ℹ️  Algunos gráficos no se inicializaron porque no existen en el DOM');
+
+        // Manejar estados de carga
+        setTimeout(() => {
+            this.handleChartLoading();
+        }, 500);
+    }
+
+    checkCanvasElements() {
+        const canvases = [
+            'mainChart',
+            'officeChart',
+            'tempChart',
+            'deviceChart',
+            'olapChart'
+        ];
+
+        canvases.forEach(canvasId => {
+            const canvas = document.getElementById(canvasId);
+            if (canvas) {
+                console.log(`✅ Canvas ${canvasId} encontrado en el DOM`);
+            } else {
+                console.error(`❌ Canvas ${canvasId} NO encontrado en el DOM`);
+                // Crear elemento si no existe (solo para debugging)
+                if (canvasId === 'officeChart' || canvasId === 'tempChart') {
+                    console.log(`⚠️  El elemento #${canvasId} no existe en tu HTML`);
+                }
+            }
+        });
     }
 
     initializeMainChart() {
@@ -417,6 +836,67 @@ class DashboardEnhanced {
         });
     }
 
+    initializeOfficeChart() {
+        const ctx = document.getElementById('officeChart')?.getContext('2d');
+        if (!ctx) {
+            console.log('❌ No se encontró officeChart');
+            return;
+        }
+
+        // Gráfico simple sin 3D por ahora
+        this.charts.office = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        'rgb(67, 97, 238)',
+                        'rgb(102, 16, 242)',
+                        'rgb(198, 75, 138)',
+                        'rgb(254, 174, 101)',
+                        'rgb(100, 200, 150)',
+                        'rgb(200, 100, 150)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: 'rgba(255, 255, 255, 0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'var(--text-primary)',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                return `${label}: ${value} kWh (${((value / context.dataset.data.reduce((a, b) => a + b, 0)) * 100).toFixed(1)}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '60%',
+                animation: {
+                    animateRotate: true,
+                    animateScale: true
+                }
+            }
+        });
+
+        console.log('✅ Gráfico de oficinas inicializado (2D por ahora)');
+    }
+
+
     initializeDeviceChart() {
         const ctx = document.getElementById('deviceChart').getContext('2d');
         this.charts.device = new Chart(ctx, {
@@ -447,7 +927,12 @@ class DashboardEnhanced {
     }
 
     initializeTempChart() {
-        const ctx = document.getElementById('tempChart').getContext('2d');
+        const ctx = document.getElementById('tempChart')?.getContext('2d');
+        if (!ctx) {
+            console.log('❌ No se encontró tempChart');
+            return;
+        }
+
         this.charts.temp = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -455,65 +940,105 @@ class DashboardEnhanced {
                 datasets: [{
                     label: 'Temperatura Máxima (°C)',
                     data: [],
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                    borderColor: 'rgb(255, 99, 132)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                    borderColor: 'rgb(239, 68, 68)',
+                    borderWidth: 1,
+                    borderRadius: 6,
                 }, {
                     label: 'Temperatura Mínima (°C)',
                     data: [],
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgb(54, 162, 235)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1,
+                    borderRadius: 6,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: 'var(--text-primary)'
+                        }
+                    }
+                },
                 scales: {
                     y: {
-                        beginAtZero: true,
+                        beginAtZero: false,
                         title: {
                             display: true,
-                            text: 'Temperatura (°C)'
+                            text: 'Temperatura (°C)',
+                            color: 'var(--text-primary)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'var(--text-secondary)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'var(--text-secondary)'
                         }
                     }
                 }
             }
         });
+
+        console.log('✅ Gráfico de temperaturas inicializado (2D por ahora)');
     }
 
-    initializeOLAPChart() {
-        const ctx = document.getElementById('olapChart').getContext('2d');
-        this.charts.olap = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: []
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
+
+    // En setupNavbarInteractions(), agrega:
+    setupNavbarSticky() {
+        const navbar = document.querySelector('.navbar-thematic');
+        const header = document.querySelector('.header');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > header.offsetHeight) {
+                navbar.classList.add('sticky');
+            } else {
+                navbar.classList.remove('sticky');
             }
         });
+    }
+
+    diagnoseCharts() {
+        console.log('🔍 Diagnóstico de Gráficos:');
+        console.log('📊 Charts inicializados:', Object.keys(this.charts));
+
+        // Verificar datos disponibles
+        const oficinasCount = Object.keys(this.resumenes).length;
+        console.log('🏢 Oficinas con datos:', oficinasCount);
+
+        if (oficinasCount > 0) {
+            console.log('📈 Datos de muestra:', this.resumenes[Object.keys(this.resumenes)[0]]);
+        }
+
+        // Forzar actualización de gráficos
+        this.updateCharts();
     }
 
     updateCharts() {
         this.updateMainChart();
         this.updateDeviceChart();
         this.updateTempChart();
+        this.updateOfficeChart(); // ← NUEVO
+        this.updateTempChart();   // ← NUEVO
     }
 
     updateMainChart() {
         if (!this.charts.main) return;
 
         const now = new Date();
-        const timeLabel = now.toLocaleTimeString('es-AR', { 
-            hour: '2-digit', 
+        const timeLabel = now.toLocaleTimeString('es-AR', {
+            hour: '2-digit',
             minute: '2-digit',
             second: '2-digit'
         });
@@ -560,8 +1085,57 @@ class DashboardEnhanced {
         this.charts.device.update();
     }
 
+    // Método para manejar estados de carga de gráficos
+    handleChartLoading() {
+        // Ocultar estados de carga cuando los gráficos estén listos
+        const officeChartLoading = document.getElementById('officeChartLoading');
+        const tempChartLoading = document.getElementById('tempChartLoading');
+
+        if (officeChartLoading && this.charts.office) {
+            officeChartLoading.style.display = 'none';
+        }
+
+        if (tempChartLoading && this.charts.temp) {
+            tempChartLoading.style.display = 'none';
+        }
+    }
+
+    updateOfficeChart() {
+        if (!this.charts.office) {
+            console.log('❌ Gráfico de oficinas 3D no inicializado');
+            return;
+        }
+
+        const oficinas = Object.keys(this.resumenes);
+        const consumos = oficinas.map(oficinaId => {
+            const resumen = this.resumenes[oficinaId];
+            return resumen.consumo_total_kvh || 0;
+        });
+
+        const officeChartLoading = document.getElementById('officeChartLoading');
+
+        if (oficinas.length > 0 && consumos.some(consumo => consumo > 0)) {
+            if (officeChartLoading) {
+                officeChartLoading.style.display = 'none';
+            }
+
+            this.charts.office.data.labels = oficinas.map(id => `Oficina ${id}`);
+            this.charts.office.data.datasets[0].data = consumos;
+
+            // Animación suave para actualizaciones
+            this.charts.office.update('active');
+        } else {
+            if (officeChartLoading) {
+                officeChartLoading.style.display = 'flex';
+            }
+        }
+    }
+
     updateTempChart() {
-        if (!this.charts.temp) return;
+        if (!this.charts.temp) {
+            console.log('❌ Gráfico de temperaturas 3D no inicializado');
+            return;
+        }
 
         const oficinas = Object.keys(this.resumenes);
         const maxTemps = [];
@@ -573,12 +1147,42 @@ class DashboardEnhanced {
             minTemps.push(resumen.min_temp || 0);
         });
 
-        this.charts.temp.data.labels = oficinas;
-        this.charts.temp.data.datasets[0].data = maxTemps;
-        this.charts.temp.data.datasets[1].data = minTemps;
+        const tempChartLoading = document.getElementById('tempChartLoading');
 
-        this.charts.temp.update();
+        if (oficinas.length > 0) {
+            if (tempChartLoading) {
+                tempChartLoading.style.display = 'none';
+            }
+
+            this.charts.temp.data.labels = oficinas.map(id => `Oficina ${id}`);
+            this.charts.temp.data.datasets[0].data = maxTemps;
+            this.charts.temp.data.datasets[1].data = minTemps;
+
+            // Animación suave
+            this.charts.temp.update('active');
+        } else {
+            if (tempChartLoading) {
+                tempChartLoading.style.display = 'flex';
+            }
+        }
     }
+
+    check3DCharts() {
+        console.log('🔍 Verificando gráficos 3D:');
+
+        // Verificar que los gráficos se inicializaron
+        console.log('📊 Gráfico Oficinas 3D:', this.charts.office ? '✅ Inicializado' : '❌ No inicializado');
+        console.log('🌡️ Gráfico Temperaturas 3D:', this.charts.temp ? '✅ Inicializado' : '❌ No inicializado');
+
+        // Verificar datos
+        const oficinasCount = Object.keys(this.resumenes).length;
+        console.log('🏢 Datos disponibles:', oficinasCount, 'oficinas');
+
+        if (oficinasCount > 0) {
+            console.log('📈 Muestra de datos:', this.resumenes[Object.keys(this.resumenes)[0]]);
+        }
+    }
+
 
     startRealTimeUpdates() {
         // Actualizar gráficos cada 2 segundos
@@ -599,7 +1203,7 @@ class DashboardEnhanced {
 
         const eventoElement = document.createElement('div');
         eventoElement.className = `event-item ${this.getEventoClase(aviso.id_tipo)}`;
-        
+
         eventoElement.innerHTML = `
             <div class="event-header">
                 <div class="event-time">${this.formatearFecha(aviso.timestamp)}</div>
@@ -688,7 +1292,7 @@ class DashboardEnhanced {
     animateEvent(element) {
         element.style.opacity = '0';
         element.style.transform = 'translateX(-20px)';
-        
+
         requestAnimationFrame(() => {
             element.style.transition = 'all 0.3s ease';
             element.style.opacity = '1';
@@ -742,7 +1346,7 @@ class DashboardEnhanced {
         this.setupModal('AgregarOficina');
         this.setupModal('ConfigSistema');
         this.setupModal('Analitica');
-        
+
         document.getElementById('btn3DView')?.addEventListener('click', () => {
             this.mostrarVista3D();
         });
@@ -829,12 +1433,12 @@ class DashboardEnhanced {
         };
 
         this.dispositivos[nombre] = { aire: true, luces: true };
-        
+
         this.renderOficinas();
         this.updateQuickStats();
         document.getElementById('modalAgregarOficina').classList.remove('active');
         form.reset();
-        
+
         this.agregarEvento({
             timestamp: Math.floor(Date.now() / 1000),
             id_tipo: '10',
@@ -857,9 +1461,20 @@ class DashboardEnhanced {
 
         console.log('📝 Guardando configuración:', config);
         localStorage.setItem('configSistema', JSON.stringify(config));
-        
+
+        // Enviar a través de WebSocket
+        if (this.sockets.params && this.sockets.params.readyState === WebSocket.OPEN) {
+            this.sockets.params.send(JSON.stringify({
+                tipo: 'actualizar_params',
+                data: config
+            }));
+            console.log('✅ Configuración enviada por WebSocket');
+        } else {
+            console.log('❌ WebSocket de params no disponible');
+        }
+
         document.getElementById('modalConfigSistema').classList.remove('active');
-        
+
         this.agregarEvento({
             timestamp: Math.floor(Date.now() / 1000),
             id_tipo: '12',
@@ -867,6 +1482,12 @@ class DashboardEnhanced {
         });
 
         this.showToast('Configuración guardada correctamente', 'success');
+    }
+
+    // Agregar este método helper para convertir tiempo
+    parseTimeToFloat(timeString) {
+        const [hours, minutes] = timeString.split(':');
+        return parseFloat(hours) + (parseFloat(minutes) / 60);
     }
 
     loadInitialData() {
@@ -889,7 +1510,7 @@ class DashboardEnhanced {
         // Implementar análisis OLAP básico
         const oficinas = Object.keys(this.resumenes);
         const consumos = oficinas.map(oficina => this.resumenes[oficina].consumo_kvh || 0);
-        
+
         this.charts.olap.data.labels = oficinas;
         this.charts.olap.data.datasets = [{
             label: 'Consumo por Oficina (kWh)',
@@ -898,7 +1519,7 @@ class DashboardEnhanced {
             borderColor: 'rgb(67, 97, 238)',
             borderWidth: 1
         }];
-        
+
         this.charts.olap.update();
     }
 

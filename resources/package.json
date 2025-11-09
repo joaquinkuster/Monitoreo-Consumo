@@ -1,24 +1,65 @@
 {
   "name": "monitoreo-consumo-dashboard",
-  "version": "2.0.0",
-  "description": "Dashboard inteligente para sistema de monitoreo de consumo eléctrico con análisis OLAP",
+  "version": "3.0.0",
+  "description": "Dashboard inteligente multi-paradigma para sistema de monitoreo de consumo eléctrico con análisis MPI, OpenMP, Prolog y Haskell",
   "main": "dashboard.js",
   "scripts": {
     "start": "node dashboard.js",
     "socket": "node socket.js",
     "dev": "concurrently \"node dashboard.js\" \"node socket.js\"",
-    "setup": "node semilla_firebase.js"
+    "setup": "node semilla_firebase.js",
+    "backend": "node backend/server.js",
+    "dev-full": "concurrently \"node dashboard.js\" \"node socket.js\" \"node backend/server.js\"",
+    "compile-mpi": "cd backend/mpi && mpicc -o mpi_analysis mpi_analysis.c -ljansson -lm",
+    "compile-openmp": "cd backend/openmp && g++ -o openmp_processor realtime_processing.cpp -fopenmp -lrapidjson",
+    "compile-haskell": "cd backend/haskell && ghc -O2 -o haskell_analysis Analysis.hs",
+    "compile-all": "npm run compile-mpi && npm run compile-openmp && npm run compile-haskell",
+    "test-paradigms": "node backend/test-paradigms.js"
   },
   "dependencies": {
     "firebase": "^9.23.0",
     "firebase-admin": "^11.11.0",
     "ws": "^8.14.2",
-    "chart.js": "^4.4.0"
+    "chart.js": "^4.4.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "node-cmd": "^5.0.0",
+    "util": "^0.12.4",
+    "path": "^0.12.7"
   },
   "devDependencies": {
-    "concurrently": "^7.6.0"
+    "concurrently": "^7.6.0",
+    "nodemon": "^2.0.22"
   },
-  "keywords": ["monitoring", "energy", "dashboard", "firebase", "websocket", "olap", "analytics"],
-  "author": "Sistema Monitoreo Consumo Inteligente",
-  "license": "MIT"
+  "keywords": [
+    "monitoring", 
+    "energy", 
+    "dashboard", 
+    "firebase", 
+    "websocket", 
+    "olap", 
+    "analytics",
+    "mpi", 
+    "openmp", 
+    "prolog", 
+    "haskell", 
+    "parallel-computing",
+    "functional-programming",
+    "logic-programming",
+    "multi-paradigm"
+  ],
+  "author": "Sistema Monitoreo Consumo Inteligente - Paradigmas y Lenguajes de Programación",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tu-usuario/monitoreo-consumo-paradigmas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tu-usuario/monitoreo-consumo-paradigmas/issues"
+  },
+  "homepage": "https://github.com/tu-usuario/monitoreo-consumo-paradigmas#readme"
 }

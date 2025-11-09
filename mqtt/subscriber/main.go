@@ -87,7 +87,7 @@ var (
 )
 
 func wsListener(endpoint string, updateFunc func([]byte)) error {
-	u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: endpoint}
+	u := url.URL{Scheme: "ws", Host: "localhost:8081", Path: endpoint}
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return err

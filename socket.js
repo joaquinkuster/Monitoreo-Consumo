@@ -63,27 +63,27 @@ function simularCambiosEnTiempoReal() {
         Object.keys(datosEjemplo.resumenes).forEach(oficina => {
             // Variación realista en los datos
             const variacion = (Math.random() - 0.5) * 2;
-            datosEjemplo.resumenes[oficina].corriente_a = Math.max(0.5, 
+            datosEjemplo.resumenes[oficina].corriente_a = Math.max(0.5,
                 datosEjemplo.resumenes[oficina].corriente_a + variacion);
-            
+
             // Recalcular consumo basado en corriente
-            datosEjemplo.resumenes[oficina].consumo_kvh = 
+            datosEjemplo.resumenes[oficina].consumo_kvh =
                 datosEjemplo.resumenes[oficina].corriente_a * 0.22;
-            
+
             // Variación de temperatura
             datosEjemplo.resumenes[oficina].min_temp = 22 + Math.random() * 2;
             datosEjemplo.resumenes[oficina].max_temp = 24 + Math.random() * 3;
-            
+
             // Incrementar tiempo presente aleatoriamente
             datosEjemplo.resumenes[oficina].tiempo_presente += Math.random() > 0.3 ? 10 : 0;
-            
+
             // Actualizar timestamp
             datosEjemplo.resumenes[oficina].timestamp = Math.floor(Date.now() / 1000);
-            
+
             // Recalcular costos
-            datosEjemplo.resumenes[oficina].monto_estimado = 
+            datosEjemplo.resumenes[oficina].monto_estimado =
                 datosEjemplo.resumenes[oficina].consumo_kvh * 0.25;
-            datosEjemplo.resumenes[oficina].monto_total = 
+            datosEjemplo.resumenes[oficina].monto_total =
                 datosEjemplo.resumenes[oficina].consumo_total_kvh * 0.25;
         });
 
@@ -93,19 +93,19 @@ function simularCambiosEnTiempoReal() {
 
 wssResumenes.on('connection', (ws) => {
     console.log('🔌 Cliente conectado a RESUMENES');
-    
+
     // Enviar datos iniciales
-    ws.send(JSON.stringify({ 
-        tipo: 'resumenes', 
-        data: datosEjemplo.resumenes 
+    ws.send(JSON.stringify({
+        tipo: 'resumenes',
+        data: datosEjemplo.resumenes
     }));
-    
+
     // Enviar actualizaciones periódicas
     const interval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ 
-                tipo: 'resumenes', 
-                data: datosEjemplo.resumenes 
+            ws.send(JSON.stringify({
+                tipo: 'resumenes',
+                data: datosEjemplo.resumenes
             }));
         }
     }, 10000);
@@ -123,11 +123,11 @@ wssResumenes.on('connection', (ws) => {
 
 wssDispositivos.on('connection', (ws) => {
     console.log('🔌 Cliente conectado a DISPOSITIVOS');
-    
+
     // Enviar datos iniciales
-    ws.send(JSON.stringify({ 
-        tipo: 'dispositivos', 
-        data: datosEjemplo.dispositivos 
+    ws.send(JSON.stringify({
+        tipo: 'dispositivos',
+        data: datosEjemplo.dispositivos
     }));
 
     // Escuchar cambios desde el cliente
@@ -139,7 +139,7 @@ wssDispositivos.on('connection', (ws) => {
                 if (datosEjemplo.dispositivos[oficina]) {
                     datosEjemplo.dispositivos[oficina][dispositivo] = estado;
                     console.log(`💡 Dispositivo actualizado: ${oficina}.${dispositivo} = ${estado}`);
-                    
+
                     // Broadcast a todos los clientes
                     wssDispositivos.clients.forEach(client => {
                         if (client.readyState === WebSocket.OPEN) {
@@ -159,7 +159,7 @@ wssDispositivos.on('connection', (ws) => {
 
 wssAvisos.on('connection', (ws) => {
     console.log('🔌 Cliente conectado a AVISOS');
-    
+
     // Enviar avisos de ejemplo iniciales
     const avisosIniciales = [
         {
@@ -169,7 +169,7 @@ wssAvisos.on('connection', (ws) => {
         },
         {
             timestamp: Math.floor(Date.now() / 1000) - 120,
-            id_tipo: "4", 
+            id_tipo: "4",
             adicional: "Oficina C - Aire acondicionado activado por temperatura elevada (25.8°C)"
         },
         {
@@ -178,10 +178,10 @@ wssAvisos.on('connection', (ws) => {
             adicional: "Oficina B - Luces apagadas automáticamente por ausencia prolongada"
         }
     ];
-    
-    ws.send(JSON.stringify({ 
-        tipo: 'avisos', 
-        data: avisosIniciales 
+
+    ws.send(JSON.stringify({
+        tipo: 'avisos',
+        data: avisosIniciales
     }));
 
     // Generar avisos aleatorios periódicamente
@@ -191,18 +191,18 @@ wssAvisos.on('connection', (ws) => {
             const oficinas = ['A', 'B', 'C'];
             const tipoAleatorio = tiposAviso[Math.floor(Math.random() * tiposAviso.length)];
             const oficinaAleatoria = oficinas[Math.floor(Math.random() * oficinas.length)];
-            
+
             const nuevoAviso = {
                 timestamp: Math.floor(Date.now() / 1000),
                 id_tipo: tipoAleatorio,
-                adicional: `Oficina ${oficinaAleatoria} - ${this.getDescripcionAviso(tipoAleatorio)}`
+                adicional: `Oficina ${oficinaAleatoria} - ${getDescripcionAviso(tipoAleatorio)}`
             };
-            
+
             ws.send(JSON.stringify({
                 tipo: 'avisos',
                 data: [nuevoAviso]
             }));
-            
+
             console.log(`🔔 Nuevo aviso generado: ${nuevoAviso.adicional}`);
         }
     }, 15000);
@@ -245,11 +245,63 @@ server.on('upgrade', (request, socket, head) => {
                 wssDispositivos.emit('connection', ws, request);
             });
             break;
+        case '/ws/params':
+            wssParams.handleUpgrade(request, socket, head, (ws) => {
+                wssParams.emit('connection', ws, request);
+            });
+            break;
         default:
             socket.destroy();
             break;
     }
 });
+
+const wssParams = new WebSocket.Server({ noServer: true });
+
+
+wssParams.on('connection', (ws) => {
+    console.log('🔌 Cliente conectado a PARAMS');
+    
+    // En Node.js no tenemos localStorage, así que iniciamos con valores por defecto
+    // o podemos usar un objeto simple en memoria
+    const configDefault = {
+        hora_inicio: 8.0,
+        hora_fin: 20.0,
+        umbral_temperatura_ac: 25.0,
+        umbral_corriente: 21.5,
+        voltaje: 220.0,
+        costo_kwh: 0.25
+    };
+    
+    // Enviar configuración por defecto
+    ws.send(JSON.stringify({
+        tipo: 'params',
+        data: configDefault
+    }));
+    
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.tipo === 'actualizar_params') {
+                console.log('📝 Parámetros actualizados:', data.data);
+                
+                // Broadcast a todos los clientes
+                wssParams.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            tipo: 'params',
+                            data: data.data
+                        }));
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error procesando parámetros:', error);
+        }
+    });
+});
+
+
 
 server.listen(PORT_WS, () => {
     console.log('✅ Servidor WebSocket mejorado escuchando en puerto', PORT_WS);
@@ -259,7 +311,7 @@ server.listen(PORT_WS, () => {
     console.log('   💡 ws://localhost:8081/ws/dispositivos');
     console.log('');
     console.log('🔄 Iniciando simulación de datos en tiempo real...');
-    
+
     // Iniciar simulación de datos
     simularCambiosEnTiempoReal();
 });

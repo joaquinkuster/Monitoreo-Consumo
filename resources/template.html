@@ -9,15 +9,20 @@
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-3d/0.1.0/chartjs-plugin-3d.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link rel="stylesheet" href="assets/styles-modern.css">
-    <link rel="stylesheet" href="assets/analytics-styles.css">
+    <!-- <link rel="stylesheet" href="assets/analytics-styles.css"> -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
 </head>
 
 <body>
+
     <header class="header">
         <div class="header-content">
-            <h1><i class="fas fa-bolt"></i> Dashboard Energético Inteligente</h1>
+            <h1><i class="fas fa-bolt"></i> Paradigmas y Lenguajes de Programación 2025</h1>
 
             <div class="theme-toggle">
                 <span><i class="fas fa-sun"></i></span>
@@ -29,17 +34,52 @@
             </div>
 
             <div class="header-buttons">
-                <button id="btn3DView" class="btn-glass"><i class="fas fa-cube"></i> Vista 3D</button>
-                <button id="btnAnalitica" class="btn-glass"><i class="fas fa-chart-bar"></i> Análisis OLAP</button>
                 <button id="btnAgregarOficina" class="btn-glass"><i class="fas fa-plus"></i> Oficina</button>
                 <button id="btnConfigSistema" class="btn-glass"><i class="fas fa-cog"></i> Configuración</button>
             </div>
         </div>
+
+        <!-- Navbar Temático -->
+        <nav class="navbar-thematic">
+            <div class="nav-container">
+                <div class="nav-dropdown">
+                    <button class="nav-dropbtn">
+                        <i class="fas fa-microchip"></i> Programación Paralela
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" onclick="dashboard.showMPIAnalysis()"><i class="fas fa-network-wired"></i> MPI - Procesamiento Distribuido</a>
+                        <a href="#" onclick="dashboard.showOpenMPAnalysis()"><i class="fas fa-code-branch"></i> OpenMP - Paralelización</a>
+                    </div>
+                </div>
+
+                <div class="nav-dropdown">
+                    <button class="nav-dropbtn">
+                        <i class="fas fa-function"></i> Programación Funcional
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" onclick="dashboard.showHaskellAnalysis()"><i class="fas fa-lambda"></i> Haskell - Análisis Funcional</a>
+                    </div>
+                </div>
+
+                <div class="nav-dropdown">
+                    <button class="nav-dropbtn">
+                        <i class="fas fa-brain"></i> Programación Lógica
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" onclick="dashboard.showPrologRules()"><i class="fas fa-robot"></i> Prolog - Sistema de Reglas</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
     </header>
 
     <div class="container">
         <aside class="sidebar">
-            <!-- Panel de Resumen General Mejorado -->
+            <!-- Panel de Resumen General con Oficinas Integradas -->
             <div class="stats-card glass-card animate-in">
                 <h3><i class="fas fa-chart-pie"></i> Resumen General</h3>
                 <div class="info-grid">
@@ -70,206 +110,104 @@
                 </div>
             </div>
 
-            <!-- Gráfico de Consumo en Tiempo Real -->
-            <div class="chart-container glass-card">
-                <h3><i class="fas fa-chart-line"></i> Consumo en Tiempo Real</h3>
-                <canvas id="mainChart" width="400" height="200"></canvas>
-            </div>
-
-            <!-- Nuevos Gráficos Multidimensionales -->
-            <div class="chart-container glass-card">
-                <h3><i class="fas fa-chart-bar"></i> Análisis por Dispositivo</h3>
-                <canvas id="deviceChart" width="400" height="200"></canvas>
-            </div>
-
-            <div class="chart-container glass-card">
-                <h3><i class="fas fa-thermometer-half"></i> Temperaturas</h3>
-                <canvas id="tempChart" width="400" height="200"></canvas>
-            </div>
-
-            <!-- Panel de Eventos Mejorado -->
-            <div class="events-panel glass-card">
-                <h3><i class="fas fa-bell"></i> Eventos Recientes</h3>
-                <div id="eventsList" class="events-list">
-                    <div class="event-placeholder">
-                        <i class="fas fa-inbox"></i><br>
-                        Esperando eventos...
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <main class="main-content">
             <!-- Resumen Rápido de Oficinas -->
             <div class="quick-stats glass-card">
-                <h3><i class="fas fa-tachometer-alt"></i> Resumen Rápido por Oficina</h3>
+                <h3><i class="fas fa-building"></i> Resumen Rápido por Oficina</h3>
                 <div id="quickStatsGrid" class="quick-stats-grid">
                     <!-- Se llenará dinámicamente -->
                 </div>
             </div>
 
-            <!-- NUEVO: Paneles de Analytics CRISP-DM y OLAP -->
-            <div id="analytics-panels">
-                <div class="crispdm-panel glass-card">
-                    <h3><i class="fas fa-brain"></i> Análisis Predictivo CRISP-DM</h3>
-                    <div class="crispdm-phases">
-                        <div class="crispdm-phase phase-business">
-                            <h4><i class="fas fa-briefcase"></i> Comprensión del Negocio</h4>
-                            <div id="business-objectives"></div>
-                        </div>
-                        <div class="crispdm-phase phase-data">
-                            <h4><i class="fas fa-database"></i> Análisis de Datos</h4>
-                            <div id="data-quality-metrics"></div>
-                        </div>
-                        <div class="crispdm-phase phase-modeling">
-                            <h4><i class="fas fa-chart-line"></i> Modelado Predictivo</h4>
-                            <div id="predictive-models"></div>
-                        </div>
+            <!-- Métricas de Eficiencia -->
+            <div class="stats-card glass-card">
+                <h3><i class="fas fa-tachometer-alt"></i> Métricas de Eficiencia</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-fire"></i> Consumo Promedio</span>
+                        <span class="info-value" id="avgConsumption">0 kWh</span>
                     </div>
-                    <div id="crispdm-recommendations" class="recommendations-container"></div>
-                    <div id="predictive-metrics" class="metrics-grid"></div>
-                </div>
-
-                <div class="crispdm-panel glass-card">
-                    <h3><i class="fas fa-cubes"></i> Cubo OLAP Multidimensional</h3>
-                    <div id="olap-interface">
-                        <div class="olap-controls">
-                            <div class="dimension-selector">
-                                <label>Dimensión X:</label>
-                                <select id="olap-axis-x">
-                                    <option value="tiempo.hora">Hora</option>
-                                    <option value="ubicacion.oficina">Oficina</option>
-                                    <option value="dispositivo.categoria">Categoría</option>
-                                    <option value="operacional.uso">Uso</option>
-                                </select>
-                            </div>
-                            <div class="dimension-selector">
-                                <label>Dimensión Y:</label>
-                                <select id="olap-axis-y">
-                                    <option value="consumo_kwh">Consumo kWh</option>
-                                    <option value="costo_total">Costo Total</option>
-                                    <option value="eficiencia">Eficiencia</option>
-                                    <option value="corriente_promedio">Corriente</option>
-                                </select>
-                            </div>
-                            <div class="dimension-selector">
-                                <label>Medida:</label>
-                                <select id="olap-measure">
-                                    <option value="sum">Suma</option>
-                                    <option value="avg">Promedio</option>
-                                    <option value="max">Máximo</option>
-                                    <option value="min">Mínimo</option>
-                                </select>
-                            </div>
-                            <button class="btn-glass" onclick="window.olapEngine.generateOLAPView()">
-                                <i class="fas fa-chart-bar"></i> Generar Vista
-                            </button>
-                        </div>
-                        <div id="olap-visualization" class="olap-visualization">
-                            <!-- Aquí se renderizarán los gráficos OLAP -->
-                        </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-thermometer-half"></i> Temp Promedio</span>
+                        <span class="info-value" id="avgTemperature">0°C</span>
                     </div>
-                    <div id="mdx-query-interface" class="mdx-interface">
-                        <h4><i class="fas fa-code"></i> Consultas MDX Avanzadas</h4>
-                        <textarea class="mdx-editor"
-                            placeholder="SELECT {[Measures].[Consumo]} ON COLUMNS FROM [Cube] WHERE [Tiempo].[2024]"></textarea>
-                        <div class="form-actions">
-                            <button class="btn-glass" onclick="window.olapEngine.executeMDXQuery()">
-                                <i class="fas fa-play"></i> Ejecutar MDX
-                            </button>
-                            <button class="btn-glass" onclick="window.olapEngine.showMDXExamples()">
-                                <i class="fas fa-lightbulb"></i> Ejemplos
-                            </button>
-                        </div>
-                        <div id="mdx-results" class="mdx-results">
-                            <div class="results-placeholder">
-                                <i class="fas fa-database"></i>
-                                <p>Los resultados de las consultas MDX aparecerán aquí</p>
-                            </div>
-                        </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-bolt"></i> Corriente Máxima</span>
+                        <span class="info-value" id="maxCurrent">0 A</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-chart-line"></i> Eficiencia Global</span>
+                        <span class="info-value" id="globalEfficiency">0%</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-exclamation-triangle"></i> Alertas Activas</span>
+                        <span class="info-value" id="activeAlerts">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-plug"></i> Dispositivos ON</span>
+                        <span class="info-value" id="devicesOn">0</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Grid Principal de Oficinas (existente) -->
+            <!-- Grid de Oficinas dentro del Sidebar - CON SCROLL MEJORADO -->
             <div class="section-header">
-                <h2><i class="fas fa-building"></i> Monitoreo Detallado por Oficina</h2>
-                <div class="view-controls">
-                    <button id="btnCompactView" class="btn-glass small"><i class="fas fa-th"></i> Compacto</button>
-                    <button id="btnDetailedView" class="btn-glass small active"><i class="fas fa-list"></i>
-                        Detallado</button>
-                </div>
+                <h3><i class="fas fa-th-large"></i> Monitoreo de Oficinas</h3>
             </div>
-
-            <div class="offices-grid" id="sectoresGrid">
+            <div class="offices-grid-sidebar" id="sectoresGrid">
                 <div class="loading-card glass-card">
                     <h3><i class="fas fa-sync fa-spin"></i> Cargando oficinas...</h3>
                     <p>Conectando con el sistema de monitoreo</p>
                 </div>
             </div>
 
-            <!-- Grid Principal de Oficinas -->
-            <div class="section-header">
-                <h2><i class="fas fa-building"></i> Monitoreo Detallado por Oficina</h2>
-                <div class="view-controls">
-                    <button id="btnCompactView" class="btn-glass small"><i class="fas fa-th"></i> Compacto</button>
-                    <button id="btnDetailedView" class="btn-glass small active"><i class="fas fa-list"></i>
-                        Detallado</button>
-                </div>
-            </div>
+        </aside>
 
-            <div class="offices-grid" id="sectoresGrid">
-                <div class="loading-card glass-card">
-                    <h3><i class="fas fa-sync fa-spin"></i> Cargando oficinas...</h3>
-                    <p>Conectando con el sistema de monitoreo</p>
+        <main class="main-content">
+            <!-- Contenido Principal: Gráficos y Eventos -->
+            <div class="main-grid">
+                <!-- Gráfico de Consumo en Tiempo Real -->
+                <div class="chart-container-large glass-card">
+                    <h3><i class="fas fa-chart-line"></i> Consumo en Tiempo Real</h3>
+                    <canvas id="mainChart" width="600" height="300"></canvas>
+                    <div id="mainChartLoading" class="chart-loading" style="display: none;">
+                        <i class="fas fa-sync fa-spin"></i> Cargando datos...
+                    </div>
+                </div>
+
+                <!-- Gráficos Adicionales -->
+                <div class="charts-grid">
+                    <div class="chart-container glass-card">
+                        <h3><i class="fas fa-chart-pie"></i> Distribución por Oficina</h3>
+                        <canvas id="officeChart" width="400" height="200"></canvas>
+                        <div id="officeChartLoading" class="chart-loading">
+                            <i class="fas fa-sync fa-spin"></i> Esperando datos...
+                        </div>
+                    </div>
+
+                    <div class="chart-container glass-card">
+                        <h3><i class="fas fa-thermometer-half"></i> Temperaturas por Oficina</h3>
+                        <canvas id="tempChart" width="400" height="200"></canvas>
+                        <div id="tempChartLoading" class="chart-loading">
+                            <i class="fas fa-sync fa-spin"></i> Esperando datos...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Eventos Mejorado -->
+                <div class="events-panel-large glass-card">
+                    <h3><i class="fas fa-bell"></i> Eventos y Alertas Recientes</h3>
+                    <div id="eventsList" class="events-list">
+                        <div class="event-placeholder">
+                            <i class="fas fa-inbox"></i><br>
+                            Esperando eventos...
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal para Análisis OLAP -->
-    <div id="modalAnalitica" class="modal-overlay">
-        <div class="modal glass-card large">
-            <h3><i class="fas fa-chart-network"></i> Análisis Multidimensional OLAP</h3>
-            <div class="olap-controls">
-                <div class="form-group">
-                    <label>Dimensión X</label>
-                    <select id="olapDimensionX">
-                        <option value="time">Tiempo</option>
-                        <option value="office">Oficina</option>
-                        <option value="device">Dispositivo</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Dimensión Y</label>
-                    <select id="olapDimensionY">
-                        <option value="consumption">Consumo</option>
-                        <option value="cost">Costo</option>
-                        <option value="temperature">Temperatura</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Métrica</label>
-                    <select id="olapMetric">
-                        <option value="sum">Suma</option>
-                        <option value="avg">Promedio</option>
-                        <option value="max">Máximo</option>
-                    </select>
-                </div>
-            </div>
-            <div class="chart-container-large">
-                <canvas id="olapChart" width="600" height="300"></canvas>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn-glass" id="btnCancelarAnalitica">Cerrar</button>
-                <button type="button" class="btn-glass primary" id="btnExportAnalitica">
-                    <i class="fas fa-download"></i> Exportar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Agregar Oficina -->
+    <!-- Modales (mantener igual) -->
     <div id="modalAgregarOficina" class="modal-overlay">
         <div class="modal glass-card">
             <h3><i class="fas fa-building"></i> Agregar Nueva Oficina</h3>
@@ -291,7 +229,6 @@
         </div>
     </div>
 
-    <!-- Modal Configuración del Sistema -->
     <div id="modalConfigSistema" class="modal-overlay">
         <div class="modal glass-card">
             <h3><i class="fas fa-cogs"></i> Configuración del Sistema</h3>
@@ -331,14 +268,168 @@
         </div>
     </div>
 
+    <!-- Nuevos Modales para Paradigmas -->
+    <div id="modalMPI" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-network-wired"></i> Procesamiento Distribuido - MPI</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Análisis Distribuido en Tiempo Real</h4>
+                    <p>Simulando procesamiento paralelo con 4 nodos virtuales</p>
+                </div>
+                <div id="mpiResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runMPIAnalysis('efficiency')">
+                        <i class="fas fa-calculator"></i> Calcular Eficiencia
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.runMPIAnalysis('anomaly')">
+                        <i class="fas fa-exclamation-triangle"></i> Detectar Anomalías
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalMPI')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalOpenMP" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-code-branch"></i> Paralelización - OpenMP</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Procesamiento Paralelo de Streams de Datos</h4>
+                    <p>Utilizando Web Workers para simular paralelismo</p>
+                </div>
+                <div id="openmpResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runOpenMPAnalysis('stats')">
+                        <i class="fas fa-chart-bar"></i> Estadísticas Avanzadas
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.runOpenMPAnalysis('streams')">
+                        <i class="fas fa-wave-square"></i> Procesar Streams
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalOpenMP')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalProlog" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-robot"></i> Sistema de Reglas - Prolog</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Motor de Reglas Inteligentes</h4>
+                    <p>Evaluando condiciones y generando recomendaciones automáticas</p>
+                </div>
+                <div id="prologResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runPrologEvaluation()">
+                        <i class="fas fa-play"></i> Ejecutar Evaluación
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalProlog')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalHaskell" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-lambda"></i> Análisis Funcional - Haskell</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Programación Funcional Pura</h4>
+                    <p>Composición de funciones y análisis inmutable de datos</p>
+                </div>
+                <div id="haskellResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runHaskellAnalysis('efficiency')">
+                        <i class="fas fa-chart-line"></i> Análisis de Eficiencia
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.runHaskellAnalysis('trend')">
+                        <i class="fas fa-project-diagram"></i> Análisis de Tendencia
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalHaskell')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Profesional -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-graduation-cap"></i> Paradigmas y Lenguajes de Programación</h4>
+                <p>FCEQyN - Universidad Nacional de Misiones</p>
+                <p>Trabajo Final Integrador - 2025</p>
+            </div>
+
+            <div class="footer-section">
+                <h4><i class="fas fa-bolt"></i> Sistema Inteligente</h4>
+                <div class="tech-stack">
+                    <span class="tech-badge">MPI</span>
+                    <span class="tech-badge">OpenMP</span>
+                    <span class="tech-badge">Haskell</span>
+                    <span class="tech-badge">Prolog</span>
+                    <span class="tech-badge">Firebase</span>
+                    <span class="tech-badge">IoT</span>
+                </div>
+            </div>
+
+            <div class="footer-section">
+                <h4><i class="fas fa-code"></i> Tecnologías Implementadas</h4>
+                <ul class="tech-list">
+                    <li><i class="fab fa-js"></i> JavaScript & Chart.js</li>
+                    <li><i class="fas fa-database"></i> Firebase Realtime DB</li>
+                    <li><i class="fas fa-microchip"></i> MQTT & WebSockets</li>
+                    <li><i class="fas fa-server"></i> Node.js Backend</li>
+                    <li><i class="fas fa-palette"></i> CSS3 & Glass Morphism</li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4><i class="fas fa-users"></i> Desarrollado por</h4>
+                <p>Küster Joaquín, Da Silva Marcos, Martinez Lázaro Ezequiel</p>
+                <div class="social-links">
+                    <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="footer-bottom-content">
+                <p>&copy; 2025 Sistema de Monitoreo Energético Inteligente. Todos los derechos reservados.</p>
+                <div class="footer-stats">
+                    <span class="stat"><i class="fas fa-heart"></i> Hecho con pasión</span>
+                    <span class="stat"><i class="fas fa-code"></i> Última actualización: <span
+                            id="lastUpdate"></span></span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <!-- Notificaciones Toast -->
     <div id="toastContainer" class="toast-container"></div>
 
     <script src="assets/theme-toggle.js"></script>
     <script src="assets/dashboard-enhanced.js"></script>
-    <!-- NUEVO: Scripts de Analytics -->
-    <script src="assets/crisp-dm-analytics.js"></script>
-    <script src="assets/olap-multidimensional.js"></script>
 </body>
 
 </html>
