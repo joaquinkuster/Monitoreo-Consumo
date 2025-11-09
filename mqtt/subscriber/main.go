@@ -22,7 +22,7 @@ import (
 type TipoAviso struct {
 	Motivo  string `json:"motivo"`
 	Detalle string `json:"detalle"`
-	Impacto int64  `json:"impacto"` // 1: Éxito, 2: Error, 3: Advertencia
+	Impacto int64  `json:"impacto"`
 }
 
 type ParametrosConfig struct {
@@ -76,7 +76,6 @@ type EstadoOficina struct {
 	Mutex                 sync.Mutex
 }
 
-// Variables globales protegidas con mutex
 var (
 	mu                 sync.RWMutex
 	config             ParametrosConfig
@@ -87,9 +86,8 @@ var (
 	clienteFirebase    *db.Client
 )
 
-// Función para escuchar mensajes websocket y actualizar la variable pasada
 func wsListener(endpoint string, updateFunc func([]byte)) error {
-	u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: endpoint}
+	u := url.URL{Scheme: "ws", Host: "localhost:8081", Path: endpoint}
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return err
@@ -114,7 +112,6 @@ func actualizarParamsConfig(data []byte) {
 		Data ParametrosConfig `json:"data"`
 	}
 	if err := json.Unmarshal(data, &m); err != nil {
-		log.Println("Error parseando configuración:", err)
 		return
 	}
 	if m.Tipo != "params" {
@@ -123,7 +120,6 @@ func actualizarParamsConfig(data []byte) {
 	mu.Lock()
 	config = m.Data
 	mu.Unlock()
-	log.Println("Configuración actualizada:", config)
 }
 
 func actualizarTiposAvisos(data []byte) {
@@ -132,7 +128,6 @@ func actualizarTiposAvisos(data []byte) {
 		Data map[string]TipoAviso `json:"data"`
 	}
 	if err := json.Unmarshal(data, &m); err != nil {
-		log.Println("Error parseando tipos de avisos:", err)
 		return
 	}
 	if m.Tipo != "tipos_avisos" {
@@ -144,7 +139,6 @@ func actualizarTiposAvisos(data []byte) {
 		idsTiposAvisos = append(idsTiposAvisos, id)
 	}
 	mu.Unlock()
-	log.Printf("Tipos de avisos actualizados: %d tipos", len(idsTiposAvisos))
 }
 
 func actualizarDispositivos(data []byte) {
@@ -153,7 +147,6 @@ func actualizarDispositivos(data []byte) {
 		Data map[string]map[string]bool `json:"data"`
 	}
 	if err := json.Unmarshal(data, &m); err != nil {
-		log.Println("Error parseando estado dispositivos:", err)
 		return
 	}
 	if m.Tipo != "dispositivos" {
@@ -162,16 +155,14 @@ func actualizarDispositivos(data []byte) {
 	mu.Lock()
 	dispositivoEstados = m.Data
 	mu.Unlock()
-	log.Println("Estados de dispositivos actualizados")
 }
 
 func actualizarOficinas(data []byte) {
 	var m struct {
 		Tipo string                 `json:"tipo"`
-		Data map[string]interface{} `json:"data"` // solo interesa claves
+		Data map[string]interface{} `json:"data"`
 	}
 	if err := json.Unmarshal(data, &m); err != nil {
-		log.Println("Error parseando oficinas:", err)
 		return
 	}
 	if m.Tipo != "oficinas" {
@@ -183,7 +174,6 @@ func actualizarOficinas(data []byte) {
 		oficinas = append(oficinas, id)
 	}
 	mu.Unlock()
-	log.Printf("Oficinas actualizadas: %v", oficinas)
 }
 
 func obtenerEstado(oficina string) *EstadoOficina {
@@ -210,6 +200,10 @@ func detectarAvisos(datos DatosSensor, estado *EstadoOficina) []Aviso {
 	localIdsTipos := idsTiposAvisos
 	mu.RUnlock()
 
+	if len(localIdsTipos) == 0 {
+		return avisos
+	}
+
 	agregarAviso := func(idTipo, adicional string) {
 		avisos = append(avisos, Aviso{
 			Timestamp: ahora,
@@ -218,7 +212,6 @@ func detectarAvisos(datos DatosSensor, estado *EstadoOficina) []Aviso {
 		})
 	}
 
-	// Avisos de luces
 	if datos.Presencia {
 		if !estadoDispositivo["luces"] && estado.LuzEncendida {
 			agregarAviso(localIdsTipos[0], "")
@@ -232,7 +225,6 @@ func detectarAvisos(datos DatosSensor, estado *EstadoOficina) []Aviso {
 		estado.LuzEncendida = false
 	}
 
-	// Avisos aire acondicionado
 	debePrenderAire := datos.Presencia && datos.Temperatura > localConfig.UmbralTemperaturaAC
 	if debePrenderAire {
 		if !estadoDispositivo["aire"] && estado.AireEncendido {
@@ -247,12 +239,10 @@ func detectarAvisos(datos DatosSensor, estado *EstadoOficina) []Aviso {
 		estado.AireEncendido = false
 	}
 
-	// Consumo anómalo
 	if !datos.Presencia && datos.CorrienteA > 10.0 {
 		agregarAviso(localIdsTipos[6], fmt.Sprintf("Consumo: %.2f A", datos.CorrienteA))
 	}
 
-	// Corte de energía
 	if datos.CorrienteA <= 0 {
 		if estado.SinCorrienteDesde == nil {
 			estado.SinCorrienteDesde = &datos.Timestamp
@@ -264,7 +254,6 @@ func detectarAvisos(datos DatosSensor, estado *EstadoOficina) []Aviso {
 		estado.SinCorrienteDesde = nil
 	}
 
-	// Sensor fuera de servicio
 	tiempoSinRespuesta := ahora - estado.UltimaLectura
 	if tiempoSinRespuesta > 60 && !estado.SensorFueraDeServicio {
 		agregarAviso(localIdsTipos[8], fmt.Sprintf("Tiempo sin respuesta: %d segundos", tiempoSinRespuesta))
@@ -273,7 +262,6 @@ func detectarAvisos(datos DatosSensor, estado *EstadoOficina) []Aviso {
 		estado.SensorFueraDeServicio = false
 	}
 
-	// Alerta de corriente
 	if datos.CorrienteA > localConfig.UmbralCorriente && !estado.ConsumoElevado {
 		agregarAviso(localIdsTipos[9], fmt.Sprintf("Consumo: %.2f A", datos.CorrienteA))
 		estado.ConsumoElevado = true
@@ -284,7 +272,6 @@ func detectarAvisos(datos DatosSensor, estado *EstadoOficina) []Aviso {
 	return avisos
 }
 
-// Guardar aviso con push para ID único
 func guardarAviso(ctx context.Context, oficina string, aviso Aviso) error {
 	ref := clienteFirebase.NewRef(fmt.Sprintf("monitoreo_consumo/oficinas/%s/avisos", oficina))
 	newRef, err := ref.Push(ctx, aviso)
@@ -295,7 +282,6 @@ func guardarAviso(ctx context.Context, oficina string, aviso Aviso) error {
 	return nil
 }
 
-// Generar resumen del estado de la oficina
 func generarResumen(ahora int64, estado *EstadoOficina) Resumen {
 	mu.RLock()
 	localConfig := config
@@ -347,7 +333,6 @@ func generarResumen(ahora int64, estado *EstadoOficina) Resumen {
 	}
 }
 
-// Guardar resumen con push para ID único
 func guardarResumen(ctx context.Context, oficina string, resumen Resumen) error {
 	ref := clienteFirebase.NewRef(fmt.Sprintf("monitoreo_consumo/oficinas/%s/resumenes", oficina))
 	newRef, err := ref.Push(ctx, resumen)
@@ -359,42 +344,32 @@ func guardarResumen(ctx context.Context, oficina string, resumen Resumen) error 
 }
 
 func main() {
-	// Inicializa Firebase y MQTT
 	ctx := context.Background()
-	credenciales := option.WithCredentialsFile("../credentials/monitoreo-consumo-d3933-firebase-adminsdk-fbsvc-991544dd8c.json")
+	credenciales := option.WithCredentialsFile("../../credentials/firebase-credentials.json")
 	app, err := firebase.NewApp(ctx, nil, credenciales)
 	if err != nil {
 		log.Fatalf("Error al inicializar Firebase: %v", err)
 	}
-	clienteFirebase, err = app.DatabaseWithURL(ctx, "https://monitoreo-consumo-d3933-default-rtdb.firebaseio.com/")
+	clienteFirebase, err = app.DatabaseWithURL(ctx, "https://mqtt-mosquitto-3ae51-default-rtdb.firebaseio.com/")
 	if err != nil {
 		log.Fatalf("Error al obtener cliente de base de datos: %v", err)
 	}
+
 	opciones := mqtt.NewClientOptions().AddBroker("tcp://localhost:1883").SetClientID("subscriptor-edge")
 	clienteMQTT := mqtt.NewClient(opciones)
 	if token := clienteMQTT.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
 
-	// Lanzar listeners para actualizar config, tiposAvisos, oficinas y dispositivos vía websocket
-	if err := wsListener("/ws/params", actualizarParamsConfig); err != nil {
-		log.Fatal("No se pudo conectar ws configuración:", err)
-	}
-	if err := wsListener("/ws/tipos_avisos", actualizarTiposAvisos); err != nil {
-		log.Fatal("No se pudo conectar ws tipos avisos:", err)
-	}
-	if err := wsListener("/ws/oficinas", actualizarOficinas); err != nil {
-		log.Fatal("No se pudo conectar ws oficinas:", err)
-	}
-	if err := wsListener("/ws/dispositivos", actualizarDispositivos); err != nil {
-		log.Fatal("No se pudo conectar ws dispositivos:", err)
-	}
+	wsListener("/ws/params", actualizarParamsConfig)
+	wsListener("/ws/tipos_avisos", actualizarTiposAvisos)
+	wsListener("/ws/oficinas", actualizarOficinas)
+	wsListener("/ws/dispositivos", actualizarDispositivos)
 
 	topic := "oficinas/+/sensores"
 	clienteMQTT.Subscribe(topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
 		var datos DatosSensor
 		if err := json.Unmarshal(msg.Payload(), &datos); err != nil {
-			log.Printf("Error al parsear mensaje: %v", err)
 			return
 		}
 		ahora := time.Now().Unix()
@@ -434,22 +409,3 @@ func main() {
 
 	select {}
 }
-
-/*
-Este archivo representa un sistema edge computing que recibe datos vía MQTT desde sensores y almacena en Firebase solo información relevante.
-
-¿Qué hace todo el programa?
-
-- Escucha los datos enviados por sensores de distintos sectores (vía MQTT).
-- Por cada dato recibido:
-  - Acumula datos para generar un resumen cada 5 minutos.
-  - Detecta avisos importantes como:
-    - Luces encendidas/apagadas.
-    - Aire acondicionado encendido/apagado.
-    - Consumo anómalo (corriente > 10 A sin presencia).
-    - Corte de energía (corriente en 0 por más de 1 minuto).
-- Los avisos detectados y los resúmenes se envían a Firebase.
-- Usa estructuras sincronizadas para manejar múltiples sectores.
-
-Esto permite reducir tráfico innecesario hacia la nube, y conservar solo lo más útil para análisis o alertas.
-*/

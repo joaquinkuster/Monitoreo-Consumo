@@ -1,322 +1,317 @@
 const WebSocket = require('ws');
 const url = require('url');
+const http = require('http');
 
-// Importar Firebase modular
-const { initializeApp } = require('firebase/app');
-const { getDatabase, ref, onValue, off } = require('firebase/database');
-const { inicializarBaseDeDatos } = require('./semilla_firebase'); 
-const server = require('./dashboard'); // Asume que tienes tu server HTTP
+console.log('🔌 Iniciando servidor WebSocket mejorado...');
 
-// Configuración Firebase
-const firebaseConfig = {
-  databaseURL: "https://monitoreo-consumo-d3933-default-rtdb.firebaseio.com/"
-};
+// Crear servidor HTTP para WebSockets en puerto 8081
+const server = http.createServer();
+const PORT_WS = 8081;
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// Llama a la función de inicialización
-(async () => {
-  try {
-    await inicializarBaseDeDatos(db);
-    console.log('Base de datos inicializada correctamente.');
-  } catch (err) {
-    console.error('Error inicializando base de datos:', err);
-  }
-})();
-
-// Funciones helpers (reusa las que ya tienes, adaptadas a la nueva estructura)
-
-function filtrarUltimoResumenPorOficina(oficinasRaw) {
-  const resultado = {};
-  for (const oficinaID in oficinasRaw) {
-    const resumenes = oficinasRaw[oficinaID]?.resumenes || {};
-    let maxTS = 0;
-    let resumenMasReciente = null;
-    for (const resumenID in resumenes) {
-      const resumen = resumenes[resumenID];
-      if (resumen.timestamp > maxTS) {
-        maxTS = resumen.timestamp;
-        resumenMasReciente = resumen;
-      }
-    }
-    if (resumenMasReciente) {
-      resultado[oficinaID] = resumenMasReciente;
-    }
-  }
-  return resultado;
-}
-
-function objetosIguales(obj1, obj2) {
-  if (!obj1 && !obj2) return true;
-  if (!obj1 || !obj2) return false;
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
-  if (keys1.length !== keys2.length) return false;
-  for (const key of keys1) {
-    if (obj1[key] !== obj2[key]) return false;
-  }
-  return true;
-}
-
-function obtenerCambiosResumenes(nuevoResumenes, ultimoResumenPorOficina) {
-  const cambios = {};
-  for (const oficinaID in nuevoResumenes) {
-    const nuevo = nuevoResumenes[oficinaID];
-    const anterior = ultimoResumenPorOficina[oficinaID];
-
-    if (!anterior || nuevo.timestamp > anterior.timestamp) {
-      cambios[oficinaID] = nuevo;
-      ultimoResumenPorOficina[oficinaID] = nuevo;
-    }
-  }
-  return cambios;
-}
-
-function obtenerCambiosDispositivos(nuevoEstado, ultimoEstadoDispositivos) {
-  const cambios = {};
-  for (const oficinaID in nuevoEstado) {
-    if (!ultimoEstadoDispositivos[oficinaID]) {
-      cambios[oficinaID] = nuevoEstado[oficinaID];
-      ultimoEstadoDispositivos[oficinaID] = nuevoEstado[oficinaID];
-    } else if (!objetosIguales(nuevoEstado[oficinaID], ultimoEstadoDispositivos[oficinaID])) {
-      cambios[oficinaID] = nuevoEstado[oficinaID];
-      ultimoEstadoDispositivos[oficinaID] = nuevoEstado[oficinaID];
-    }
-  }
-  return cambios;
-}
-
-function filtrarAvisosNuevos(oficinasRaw, ultimoTimestampAviso) {
-  const resultado = [];
-  for (const oficinaID in oficinasRaw) {
-    const avisos = oficinasRaw[oficinaID]?.avisos || {};
-    for (const avisoID in avisos) {
-      const aviso = avisos[avisoID];
-      resultado.push(aviso);
-    }
-  }
-  // Filtrar solo avisos posteriores al último timestamp conocido
-  return resultado.filter(a => a.timestamp >= ultimoTimestampAviso);
-}
-
-// ------- Crear instancias WebSocket para cada tipo ---------
-
+// Crear servidores WebSocket para cada endpoint
 const wssResumenes = new WebSocket.Server({ noServer: true });
 const wssAvisos = new WebSocket.Server({ noServer: true });
-const wssTiposAvisos = new WebSocket.Server({ noServer: true });
 const wssDispositivos = new WebSocket.Server({ noServer: true });
-const wssOficinas = new WebSocket.Server({ noServer: true });
+
+// Datos de ejemplo mejorados para pruebas
+let datosEjemplo = {
+    resumenes: {
+        "A": {
+            timestamp: Math.floor(Date.now() / 1000),
+            corriente_a: 5.2,
+            consumo_kvh: 1.14,
+            consumo_total_kvh: 45.6,
+            min_temp: 22.5,
+            max_temp: 25.8,
+            tiempo_presente: 300,
+            monto_estimado: 0.29,
+            monto_total: 11.4
+        },
+        "B": {
+            timestamp: Math.floor(Date.now() / 1000),
+            corriente_a: 3.8,
+            consumo_kvh: 0.84,
+            consumo_total_kvh: 33.6,
+            min_temp: 23.1,
+            max_temp: 26.2,
+            tiempo_presente: 240,
+            monto_estimado: 0.21,
+            monto_total: 8.4
+        },
+        "C": {
+            timestamp: Math.floor(Date.now() / 1000),
+            corriente_a: 7.1,
+            consumo_kvh: 1.56,
+            consumo_total_kvh: 62.4,
+            min_temp: 21.8,
+            max_temp: 24.9,
+            tiempo_presente: 420,
+            monto_estimado: 0.39,
+            monto_total: 15.6
+        }
+    },
+    dispositivos: {
+        "A": { aire: true, luces: true },
+        "B": { aire: false, luces: true },
+        "C": { aire: true, luces: false }
+    }
+};
+
+// Función para simular datos en tiempo real
+function simularCambiosEnTiempoReal() {
+    setInterval(() => {
+        Object.keys(datosEjemplo.resumenes).forEach(oficina => {
+            // Variación realista en los datos
+            const variacion = (Math.random() - 0.5) * 2;
+            datosEjemplo.resumenes[oficina].corriente_a = Math.max(0.5,
+                datosEjemplo.resumenes[oficina].corriente_a + variacion);
+
+            // Recalcular consumo basado en corriente
+            datosEjemplo.resumenes[oficina].consumo_kvh =
+                datosEjemplo.resumenes[oficina].corriente_a * 0.22;
+
+            // Variación de temperatura
+            datosEjemplo.resumenes[oficina].min_temp = 22 + Math.random() * 2;
+            datosEjemplo.resumenes[oficina].max_temp = 24 + Math.random() * 3;
+
+            // Incrementar tiempo presente aleatoriamente
+            datosEjemplo.resumenes[oficina].tiempo_presente += Math.random() > 0.3 ? 10 : 0;
+
+            // Actualizar timestamp
+            datosEjemplo.resumenes[oficina].timestamp = Math.floor(Date.now() / 1000);
+
+            // Recalcular costos
+            datosEjemplo.resumenes[oficina].monto_estimado =
+                datosEjemplo.resumenes[oficina].consumo_kvh * 0.25;
+            datosEjemplo.resumenes[oficina].monto_total =
+                datosEjemplo.resumenes[oficina].consumo_total_kvh * 0.25;
+        });
+
+        console.log('📊 Datos actualizados en tiempo real');
+    }, 5000); // Actualizar cada 5 segundos
+}
+
+wssResumenes.on('connection', (ws) => {
+    console.log('🔌 Cliente conectado a RESUMENES');
+
+    // Enviar datos iniciales
+    ws.send(JSON.stringify({
+        tipo: 'resumenes',
+        data: datosEjemplo.resumenes
+    }));
+
+    // Enviar actualizaciones periódicas
+    const interval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                tipo: 'resumenes',
+                data: datosEjemplo.resumenes
+            }));
+        }
+    }, 10000);
+
+    ws.on('close', () => {
+        clearInterval(interval);
+        console.log('🔌 Cliente RESUMENES desconectado');
+    });
+
+    ws.on('error', (error) => {
+        console.error('❌ Error en conexión RESUMENES:', error);
+        clearInterval(interval);
+    });
+});
+
+wssDispositivos.on('connection', (ws) => {
+    console.log('🔌 Cliente conectado a DISPOSITIVOS');
+
+    // Enviar datos iniciales
+    ws.send(JSON.stringify({
+        tipo: 'dispositivos',
+        data: datosEjemplo.dispositivos
+    }));
+
+    // Escuchar cambios desde el cliente
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.tipo === 'actualizar_dispositivo') {
+                const { oficina, dispositivo, estado } = data;
+                if (datosEjemplo.dispositivos[oficina]) {
+                    datosEjemplo.dispositivos[oficina][dispositivo] = estado;
+                    console.log(`💡 Dispositivo actualizado: ${oficina}.${dispositivo} = ${estado}`);
+
+                    // Broadcast a todos los clientes
+                    wssDispositivos.clients.forEach(client => {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                tipo: 'dispositivos',
+                                data: datosEjemplo.dispositivos
+                            }));
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error procesando mensaje de dispositivo:', error);
+        }
+    });
+});
+
+wssAvisos.on('connection', (ws) => {
+    console.log('🔌 Cliente conectado a AVISOS');
+
+    // Enviar avisos de ejemplo iniciales
+    const avisosIniciales = [
+        {
+            timestamp: Math.floor(Date.now() / 1000) - 60,
+            id_tipo: "1",
+            adicional: "Oficina A - Luces encendidas por detección de presencia"
+        },
+        {
+            timestamp: Math.floor(Date.now() / 1000) - 120,
+            id_tipo: "4",
+            adicional: "Oficina C - Aire acondicionado activado por temperatura elevada (25.8°C)"
+        },
+        {
+            timestamp: Math.floor(Date.now() / 1000) - 180,
+            id_tipo: "2",
+            adicional: "Oficina B - Luces apagadas automáticamente por ausencia prolongada"
+        }
+    ];
+
+    ws.send(JSON.stringify({
+        tipo: 'avisos',
+        data: avisosIniciales
+    }));
+
+    // Generar avisos aleatorios periódicamente
+    const avisoInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN && Math.random() > 0.7) {
+            const tiposAviso = ['1', '2', '4', '5', '9'];
+            const oficinas = ['A', 'B', 'C'];
+            const tipoAleatorio = tiposAviso[Math.floor(Math.random() * tiposAviso.length)];
+            const oficinaAleatoria = oficinas[Math.floor(Math.random() * oficinas.length)];
+
+            const nuevoAviso = {
+                timestamp: Math.floor(Date.now() / 1000),
+                id_tipo: tipoAleatorio,
+                adicional: `Oficina ${oficinaAleatoria} - ${getDescripcionAviso(tipoAleatorio)}`
+            };
+
+            ws.send(JSON.stringify({
+                tipo: 'avisos',
+                data: [nuevoAviso]
+            }));
+
+            console.log(`🔔 Nuevo aviso generado: ${nuevoAviso.adicional}`);
+        }
+    }, 15000);
+
+    ws.on('close', () => {
+        clearInterval(avisoInterval);
+        console.log('🔌 Cliente AVISOS desconectado');
+    });
+});
+
+// Helper para descripciones de avisos
+function getDescripcionAviso(tipo) {
+    const descripciones = {
+        '1': 'Luces activadas por presencia detectada',
+        '2': 'Luces desactivadas por ausencia prolongada',
+        '4': 'Aire acondicionado activado por temperatura superior al umbral',
+        '5': 'Aire acondicionado desactivado por condiciones óptimas',
+        '9': 'Alerta: Consumo eléctrico por encima del umbral establecido'
+    };
+    return descripciones[tipo] || 'Evento del sistema';
+}
+
+// Manejar upgrades HTTP
+server.on('upgrade', (request, socket, head) => {
+    const pathname = url.parse(request.url).pathname;
+
+    switch (pathname) {
+        case '/ws/resumenes':
+            wssResumenes.handleUpgrade(request, socket, head, (ws) => {
+                wssResumenes.emit('connection', ws, request);
+            });
+            break;
+        case '/ws/avisos':
+            wssAvisos.handleUpgrade(request, socket, head, (ws) => {
+                wssAvisos.emit('connection', ws, request);
+            });
+            break;
+        case '/ws/dispositivos':
+            wssDispositivos.handleUpgrade(request, socket, head, (ws) => {
+                wssDispositivos.emit('connection', ws, request);
+            });
+            break;
+        case '/ws/params':
+            wssParams.handleUpgrade(request, socket, head, (ws) => {
+                wssParams.emit('connection', ws, request);
+            });
+            break;
+        default:
+            socket.destroy();
+            break;
+    }
+});
+
 const wssParams = new WebSocket.Server({ noServer: true });
 
-// =================== Manejadores de cada WebSocket ======================
 
-// Socket para los RESUMENES
-wssResumenes.on('connection', (ws) => {
-  console.log('Cliente WS conectado a RESUMENES');
-
-  let ultimoResumenPorOficina = {};
-  const oficinasRef = ref(db, 'monitoreo_consumo/oficinas');
-
-  const resumenListener = onValue(oficinasRef, (snapshot) => {
-    const rawOficinas = snapshot.val();
-    if (!rawOficinas) return;
-
-    const ultimos = filtrarUltimoResumenPorOficina(rawOficinas);
-    const cambios = obtenerCambiosResumenes(ultimos, ultimoResumenPorOficina);
-
-    if (ws.readyState === WebSocket.OPEN && Object.keys(cambios).length > 0) {
-      ws.send(JSON.stringify({ tipo: 'resumenes', data: cambios }));
-    }
-  });
-
-  ws.on('close', () => {
-    off(oficinasRef, 'value', resumenListener);
-    console.log('Cliente WS RESUMENES desconectado');
-  });
-});
-
-// Socket para los AVISOS
-wssAvisos.on('connection', (ws) => {
-  console.log('Cliente WS conectado a AVISOS');
-
-  let ultimoTimestampAviso = Math.floor(Date.now() / 1000) - 180;
-  const oficinasRef = ref(db, 'monitoreo_consumo/oficinas');
-
-  const avisosListener = onValue(oficinasRef, (snapshot) => {
-    const rawOficinas = snapshot.val();
-    if (!rawOficinas) return;
-
-    const avisosNuevos = filtrarAvisosNuevos(rawOficinas, ultimoTimestampAviso);
-
-    if (avisosNuevos.length > 0) {
-      ultimoTimestampAviso = Math.max(...avisosNuevos.map(a => a.timestamp)) + 1;
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ tipo: 'avisos', data: avisosNuevos }));
-      }
-    }
-  });
-
-  ws.on('close', () => {
-    off(oficinasRef, 'value', avisosListener);
-    console.log('Cliente WS AVISOS desconectado');
-  });
-});
-
-// Socket para los TIPOS DE AVISOS
-wssTiposAvisos.on('connection', (ws) => {
-  console.log('Cliente WS conectado a TIPOS DE AVISOS');
-
-  const tiposAvisosRef = ref(db, 'monitoreo_consumo/tipos_avisos');
-
-  const tiposAvisosListener = onValue(tiposAvisosRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ tipo: 'tipos_avisos', data }));
-    }
-  });
-
-  ws.on('message', (message) => {
-    // Por ahora no implementado
-  });
-
-  ws.on('close', () => {
-    off(tiposAvisosRef, 'value', tiposAvisosListener);
-    console.log('Cliente WS TIPOS DE AVISOS desconectado');
-  });
-});
-
-// Socket para los DISPOSITIVOS
-wssDispositivos.on('connection', (ws) => {
-  console.log('Cliente WS conectado a DISPOSITIVOS');
-
-  const dispositivosRef = ref(db, 'monitoreo_consumo/oficinas');
-
-  let ultimoEstadoDispositivos = {};
-
-  const dispositivosListener = onValue(dispositivosRef, (snapshot) => {
-    const rawOficinas = snapshot.val();
-    if (!rawOficinas) return;
-
-    // Crear objeto con estados dispositivos por oficina
-    const estados = {};
-    for (const oficinaID in rawOficinas) {
-      if (rawOficinas[oficinaID].estados_dispositivos) {
-        estados[oficinaID] = rawOficinas[oficinaID].estados_dispositivos;
-      }
-    }
-
-    const cambios = obtenerCambiosDispositivos(estados, ultimoEstadoDispositivos);
-
-    if (ws.readyState === WebSocket.OPEN && Object.keys(cambios).length > 0) {
-      ws.send(JSON.stringify({ tipo: 'dispositivos', data: cambios }));
-    }
-  });
-
-  ws.on('close', () => {
-    off(dispositivosRef, 'value', dispositivosListener);
-    console.log('Cliente WS DISPOSITIVOS desconectado');
-  });
-});
-
-// Socket para las OFICINAS
-wssOficinas.on('connection', (ws) => {
-  console.log('Cliente WS conectado a OFICINAS');
-
-  const oficinasRef = ref(db, 'monitoreo_consumo/oficinas');
-
-  const oficinasListener = onValue(oficinasRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ tipo: 'oficinas', data }));
-    }
-  });
-
-  ws.on('message', (message) => {
-    // Ejemplo: procesar mensajes para agregar/modificar oficinas (no implementado ahora)
-  });
-
-  ws.on('close', () => {
-    off(oficinasRef, 'value', oficinasListener);
-    console.log('Cliente WS OFICINAS desconectado');
-  });
-});
-
-// Socket para los PARAMS de configuración
 wssParams.on('connection', (ws) => {
-  console.log('Cliente WS conectado a PARAMS de configuración');
-
-  const paramsRef = ref(db, 'monitoreo_consumo/params');
-
-  const paramsListener = onValue(paramsRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ tipo: 'params', data }));
-    }
-  });
-
-  ws.on('message', (message) => {
-    // Para procesar actualizaciones de configuración (no implementado)
-  });
-
-  ws.on('close', () => {
-    off(paramsRef, 'value', paramsListener);
-    console.log('Cliente WS PARAMS de configuración desconectado');
-  });
+    console.log('🔌 Cliente conectado a PARAMS');
+    
+    // En Node.js no tenemos localStorage, así que iniciamos con valores por defecto
+    // o podemos usar un objeto simple en memoria
+    const configDefault = {
+        hora_inicio: 8.0,
+        hora_fin: 20.0,
+        umbral_temperatura_ac: 25.0,
+        umbral_corriente: 21.5,
+        voltaje: 220.0,
+        costo_kwh: 0.25
+    };
+    
+    // Enviar configuración por defecto
+    ws.send(JSON.stringify({
+        tipo: 'params',
+        data: configDefault
+    }));
+    
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.tipo === 'actualizar_params') {
+                console.log('📝 Parámetros actualizados:', data.data);
+                
+                // Broadcast a todos los clientes
+                wssParams.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            tipo: 'params',
+                            data: data.data
+                        }));
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error procesando parámetros:', error);
+        }
+    });
 });
 
-// ======= Manejo de upgrades HTTP para enrutar al WS correcto =======
 
-server.on('upgrade', (request, socket, head) => {
-  const pathname = url.parse(request.url).pathname;
 
-  switch (pathname) {
-    case '/ws/resumenes':
-      wssResumenes.handleUpgrade(request, socket, head, (ws) => {
-        wssResumenes.emit('connection', ws, request);
-      });
-      break;
+server.listen(PORT_WS, () => {
+    console.log('✅ Servidor WebSocket mejorado escuchando en puerto', PORT_WS);
+    console.log('✅ Servidores WebSocket listos:');
+    console.log('   📊 ws://localhost:8081/ws/resumenes');
+    console.log('   🔔 ws://localhost:8081/ws/avisos');
+    console.log('   💡 ws://localhost:8081/ws/dispositivos');
+    console.log('');
+    console.log('🔄 Iniciando simulación de datos en tiempo real...');
 
-    case '/ws/avisos':
-      wssAvisos.handleUpgrade(request, socket, head, (ws) => {
-        wssAvisos.emit('connection', ws, request);
-      });
-      break;
-
-    case '/ws/tipos_avisos':
-      wssTiposAvisos.handleUpgrade(request, socket, head, (ws) => {
-        wssTiposAvisos.emit('connection', ws, request);
-      });
-      break;
-
-    case '/ws/dispositivos':
-      wssDispositivos.handleUpgrade(request, socket, head, (ws) => {
-        wssDispositivos.emit('connection', ws, request);
-      });
-      break;
-
-    case '/ws/oficinas':
-      wssOficinas.handleUpgrade(request, socket, head, (ws) => {
-        wssOficinas.emit('connection', ws, request);
-      });
-      break;
-
-    case '/ws/params':
-      wssParams.handleUpgrade(request, socket, head, (ws) => {
-        wssParams.emit('connection', ws, request);
-      });
-      break;
-
-    default:
-      socket.destroy(); // No reconocido
-      break;
-  }
+    // Iniciar simulación de datos
+    simularCambiosEnTiempoReal();
 });
-
-console.log('Servidor WebSocket listo para conexiones en:');
-console.log(' - ws://localhost:8080/ws/resumenes');
-console.log(' - ws://localhost:8080/ws/avisos');
-console.log(' - ws://localhost:8080/ws/tipos_avisos');
-console.log(' - ws://localhost:8080/ws/dispositivos');
-console.log(' - ws://localhost:8080/ws/oficinas');
-console.log(' - ws://localhost:8080/ws/params');

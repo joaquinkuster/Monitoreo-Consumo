@@ -1,749 +1,435 @@
 <!DOCTYPE html>
-<html lang="es">
-
+<html lang="es" data-theme="light">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel de Monitoreo Energético</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Panel de Monitoreo Energético Inteligente</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.min.js"></script>
-    <style>
-        :root {
-            --bg: #f5faff;
-            --primary: #3366cc;
-            --side: #415a77;
-            --accent: #4fc3f7;
-            --danger: #ff5252;
-            --surface: #eaf6ff;
-            --text: #232946;
-            --card-radius: 14px;
-            --shadow: 0 2px 15px rgba(45, 83, 160, 0.1);
-            --header-h: 58px;
-        }
-
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            min-height: 100vh;
-        }
-
-
-        header {
-            height: var(--header-h);
-            display: flex;
-            align-items: center;
-            background: var(--primary);
-            color: #fff;
-            padding: 0 2rem;
-            box-shadow: var(--shadow);
-            letter-spacing: 1px;
-            justify-content: space-between;
-            /* Para separar botones también */
-        }
-
-
-        h1 {
-            font-size: 1.3rem;
-            font-weight: 600;
-        }
-
-        /* Botones nuevos en header */
-        .header-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .btn {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            padding: 6px 16px;
-            cursor: pointer;
-            font-weight: 600;
-            box-shadow: var(--shadow);
-            transition: background-color 0.2s;
-        }
-
-        .btn:hover {
-            background-color: #2196f3;
-        }
-
-        .container {
-            padding: 2rem 1rem;
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-
-
-        .sectores-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(370px, 1fr));
-            gap: 2rem;
-        }
-
-
-        .card {
-            background: var(--surface);
-            border-radius: var(--card-radius);
-            box-shadow: var(--shadow);
-            padding: 2rem 1.5rem 1.5rem 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.4rem;
-            position: relative;
-            min-width: 0;
-        }
-
-
-        .card h2 {
-            margin: 0 0 .6rem 0;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-
-        .status-row {
-            display: flex;
-            gap: 1.5rem;
-        }
-
-
-        .status-item {
-            display: flex;
-            gap: .5rem;
-            align-items: center;
-        }
-
-
-        .switch {
-            appearance: none;
-            width: 36px;
-            height: 18px;
-            background: #dfe8f5;
-            border-radius: 12px;
-            outline: none;
-            cursor: pointer;
-            position: relative;
-            transition: background .2s;
-        }
-
-
-        .switch:checked {
-            background: var(--accent);
-        }
-
-
-        .switch::before {
-            content: "";
-            display: block;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            position: absolute;
-            top: 1px;
-            left: 2px;
-            transition: left .2s;
-        }
-
-
-        .switch:checked::before {
-            left: 18px;
-        }
-
-
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 0.5rem;
-            font-size: 0.98rem;
-        }
-
-
-        .info-table td {
-            padding: 2px 0;
-            color: var(--side);
-        }
-
-
-        .info-table .label {
-            color: var(--primary);
-            font-weight: 500;
-        }
-
-
-        .info-table .value {
-            color: var(--text);
-            font-weight: 600;
-        }
-
-
-        .graficotitle {
-            font-size: 1rem;
-            margin: 1.5rem 0 0.5rem 0;
-            color: var(--side);
-            font-weight: 500;
-            letter-spacing: .7px;
-        }
-
-
-        .chart-wrap {
-            background: #f0f7ff;
-            border-radius: 8px;
-            padding: 1rem 1rem 0.5rem 1rem;
-        }
-
-
-        .events-panel {
-            position: fixed;
-            bottom: 1rem;
-            right: 1rem;
-            width: 330px;
-            max-width: 95vw;
-            z-index: 1001;
-            display: flex;
-            flex-direction: column;
-            gap: 0.7rem;
-        }
-
-
-        .event {
-            background: #fff;
-            border-radius: 7px;
-            box-shadow: var(--shadow);
-            padding: .7rem 1rem;
-            font-size: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: .2rem;
-            border-left: 4px solid var(--accent);
-            opacity: 0;
-            animation: slideIn .5s forwards;
-        }
-
-
-        .event.success {
-            border-color: var(--primary);
-        }
-
-
-        .event.warning {
-            border-color: #ffa726;
-        }
-
-
-        .event.danger {
-            border-color: var(--danger);
-        }
-
-
-        .event .message {
-            font-weight: 600;
-        }
-
-
-        .event .time {
-            font-size: .92rem;
-            color: var(--side);
-        }
-
-
-        @keyframes slideIn {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-
-
-            from {
-                opacity: 0;
-                transform: translateX(60%);
-            }
-        }
-
-
-        @media (max-width: 800px) {
-            .container {
-                padding: 1rem .2rem;
-            }
-
-
-            .sectores-grid {
-                gap: .8rem;
-            }
-
-
-            .card {
-                padding: 1.6rem .8rem 1rem .8rem;
-            }
-        }
-
-
-
-        /* =========================
-        Estilos modales
-        ========================== */
-
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.3);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: #fff;
-            border-radius: 12px;
-            padding: 2rem 1.5rem;
-            max-width: 420px;
-            width: 100%;
-            box-shadow: var(--shadow);
-            position: relative;
-        }
-
-        .modal h3 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .modal label {
-            display: block;
-            margin: 0.5rem 0 0.2rem 0;
-            font-weight: 600;
-        }
-
-        .modal input,
-        .modal select {
-            width: 100%;
-            padding: 6px 10px;
-            font-size: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        .modal .modal-actions {
-            margin-top: 1rem;
-            text-align: right;
-        }
-
-        .modal .btn-secondary {
-            background-color: #ccc;
-            color: #333;
-            margin-right: 10px;
-        }
-
-        .error-message {
-            color: var(--danger);
-            font-size: 0.9rem;
-            margin-top: 0.3rem;
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-3d/0.1.0/chartjs-plugin-3d.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="assets/styles-modern.css">
+    <!-- <link rel="stylesheet" href="assets/analytics-styles.css"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
 </head>
 
-
 <body>
-    <header>
-        <h1>Panel de Monitoreo Energético</h1>
-        <div class="header-buttons">
-            <!-- Botones para abrir modales -->
-            <button id="btnAgregarOficina" class="btn" title="Agregar oficina">Agregar Oficina</button>
-            <button id="btnConfigSistema" class="btn" title="Configuración sistema">Configurar Sistema</button>
-        </div>
-    </header>
-    <main>
-        <div class="container">
-            <div class="sectores-grid" id="sectoresGrid">
-                <!-- Las tarjetas de cada sector se generan dinámicamente aquí -->
+
+    <header class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-bolt"></i> Paradigmas y Lenguajes de Programación 2025</h1>
+
+            <div class="theme-toggle">
+                <span><i class="fas fa-sun"></i></span>
+                <label class="theme-switch">
+                    <input type="checkbox" id="themeToggle">
+                    <span class="slider"></span>
+                </label>
+                <span><i class="fas fa-moon"></i></span>
+            </div>
+
+            <div class="header-buttons">
+                <button id="btnAgregarOficina" class="btn-glass"><i class="fas fa-plus"></i> Oficina</button>
+                <button id="btnConfigSistema" class="btn-glass"><i class="fas fa-cog"></i> Configuración</button>
             </div>
         </div>
-        <!-- Panel de eventos flotante -->
-        <div class="events-panel" id="eventsPanel"></div>
-    </main>
 
-    <!-- === MODAL AGREGAR OFICINA === -->
-    <div id="modalAgregarOficina" class="modal-overlay" role="dialog" aria-modal="true"
-        aria-labelledby="modalAgregarOficinaTitle">
-        <div class="modal">
-            <h3 id="modalAgregarOficinaTitle">Agregar Oficina</h3>
+        <!-- Navbar Temático -->
+        <nav class="navbar-thematic">
+            <div class="nav-container">
+                <div class="nav-dropdown">
+                    <button class="nav-dropbtn">
+                        <i class="fas fa-microchip"></i> Programación Paralela
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" onclick="dashboard.showMPIAnalysis()"><i class="fas fa-network-wired"></i> MPI - Procesamiento Distribuido</a>
+                        <a href="#" onclick="dashboard.showOpenMPAnalysis()"><i class="fas fa-code-branch"></i> OpenMP - Paralelización</a>
+                    </div>
+                </div>
+
+                <div class="nav-dropdown">
+                    <button class="nav-dropbtn">
+                        <i class="fas fa-function"></i> Programación Funcional
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" onclick="dashboard.showHaskellAnalysis()"><i class="fas fa-lambda"></i> Haskell - Análisis Funcional</a>
+                    </div>
+                </div>
+
+                <div class="nav-dropdown">
+                    <button class="nav-dropbtn">
+                        <i class="fas fa-brain"></i> Programación Lógica
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" onclick="dashboard.showPrologRules()"><i class="fas fa-robot"></i> Prolog - Sistema de Reglas</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <!-- Panel de Resumen General con Oficinas Integradas -->
+            <div class="stats-card glass-card animate-in">
+                <h3><i class="fas fa-chart-pie"></i> Resumen General</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-bolt"></i> Consumo Total</span>
+                        <span class="info-value" id="totalConsumption">0 kWh</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-dollar-sign"></i> Costo Total</span>
+                        <span class="info-value" id="totalCost">$0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-building"></i> Oficinas Activas</span>
+                        <span class="info-value" id="activeOffices">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-piggy-bank"></i> Ahorro Mensual</span>
+                        <span class="info-value" id="monthlySavings">0%</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-leaf"></i> CO2 Evitado</span>
+                        <span class="info-value" id="co2Saved">0 kg</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-clock"></i> Tiempo Activo</span>
+                        <span class="info-value" id="uptime">0h</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen Rápido de Oficinas -->
+            <div class="quick-stats glass-card">
+                <h3><i class="fas fa-building"></i> Resumen Rápido por Oficina</h3>
+                <div id="quickStatsGrid" class="quick-stats-grid">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Métricas de Eficiencia -->
+            <div class="stats-card glass-card">
+                <h3><i class="fas fa-tachometer-alt"></i> Métricas de Eficiencia</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-fire"></i> Consumo Promedio</span>
+                        <span class="info-value" id="avgConsumption">0 kWh</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-thermometer-half"></i> Temp Promedio</span>
+                        <span class="info-value" id="avgTemperature">0°C</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-bolt"></i> Corriente Máxima</span>
+                        <span class="info-value" id="maxCurrent">0 A</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-chart-line"></i> Eficiencia Global</span>
+                        <span class="info-value" id="globalEfficiency">0%</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-exclamation-triangle"></i> Alertas Activas</span>
+                        <span class="info-value" id="activeAlerts">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-plug"></i> Dispositivos ON</span>
+                        <span class="info-value" id="devicesOn">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Oficinas dentro del Sidebar - CON SCROLL MEJORADO -->
+            <div class="section-header">
+                <h3><i class="fas fa-th-large"></i> Monitoreo de Oficinas</h3>
+            </div>
+            <div class="offices-grid-sidebar" id="sectoresGrid">
+                <div class="loading-card glass-card">
+                    <h3><i class="fas fa-sync fa-spin"></i> Cargando oficinas...</h3>
+                    <p>Conectando con el sistema de monitoreo</p>
+                </div>
+            </div>
+
+        </aside>
+
+        <main class="main-content">
+            <!-- Contenido Principal: Gráficos y Eventos -->
+            <div class="main-grid">
+                <!-- Gráfico de Consumo en Tiempo Real -->
+                <div class="chart-container-large glass-card">
+                    <h3><i class="fas fa-chart-line"></i> Consumo en Tiempo Real</h3>
+                    <canvas id="mainChart" width="600" height="300"></canvas>
+                    <div id="mainChartLoading" class="chart-loading" style="display: none;">
+                        <i class="fas fa-sync fa-spin"></i> Cargando datos...
+                    </div>
+                </div>
+
+                <!-- Gráficos Adicionales -->
+                <div class="charts-grid">
+                    <div class="chart-container glass-card">
+                        <h3><i class="fas fa-chart-pie"></i> Distribución por Oficina</h3>
+                        <canvas id="officeChart" width="400" height="200"></canvas>
+                        <div id="officeChartLoading" class="chart-loading">
+                            <i class="fas fa-sync fa-spin"></i> Esperando datos...
+                        </div>
+                    </div>
+
+                    <div class="chart-container glass-card">
+                        <h3><i class="fas fa-thermometer-half"></i> Temperaturas por Oficina</h3>
+                        <canvas id="tempChart" width="400" height="200"></canvas>
+                        <div id="tempChartLoading" class="chart-loading">
+                            <i class="fas fa-sync fa-spin"></i> Esperando datos...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Eventos Mejorado -->
+                <div class="events-panel-large glass-card">
+                    <h3><i class="fas fa-bell"></i> Eventos y Alertas Recientes</h3>
+                    <div id="eventsList" class="events-list">
+                        <div class="event-placeholder">
+                            <i class="fas fa-inbox"></i><br>
+                            Esperando eventos...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modales (mantener igual) -->
+    <div id="modalAgregarOficina" class="modal-overlay">
+        <div class="modal glass-card">
+            <h3><i class="fas fa-building"></i> Agregar Nueva Oficina</h3>
             <form id="formAgregarOficina">
-                <label for="inputNombreOficina">Nombre del Sector (único)</label>
-                <input type="text" id="inputNombreOficina" name="nombreOficina" maxlength="3" autocomplete="off"
-                    required pattern="[A-Za-z0-9]+">
-                <div id="errorNombreOficina" class="error-message" style="display:none;">Nombre inválido o ya existe.
+                <div class="form-group">
+                    <label for="inputNombreOficina">Nombre del Sector</label>
+                    <input type="text" id="inputNombreOficina" required pattern="[A-Za-z0-9]+" maxlength="3"
+                        placeholder="Ej: A01">
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="btnCancelarAgregarOficina">Cancelar</button>
-                    <button type="submit" class="btn">Agregar</button>
+                <div class="form-group">
+                    <label for="inputSectorOficina">Sector/Departamento</label>
+                    <input type="text" id="inputSectorOficina" required placeholder="Ej: Informática">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-glass" id="btnCancelarAgregarOficina">Cancelar</button>
+                    <button type="submit" class="btn-glass primary">Agregar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- === MODAL CONFIGURACIÓN SISTEMA === -->
-    <div id="modalConfigSistema" class="modal-overlay" role="dialog" aria-modal="true"
-        aria-labelledby="modalConfigSistemaTitle">
-        <div class="modal">
-            <h3 id="modalConfigSistemaTitle">Configuración del Sistema</h3>
+    <div id="modalConfigSistema" class="modal-overlay">
+        <div class="modal glass-card">
+            <h3><i class="fas fa-cogs"></i> Configuración del Sistema</h3>
             <form id="formConfigSistema">
-                <label for="inputHorarioInicio">Horario inicio jornada (hora: min)</label>
-                <input type="time" id="inputHorarioInicio" name="horarioInicio" required>
-
-                <label for="inputHorarioFin">Horario fin jornada (hora: min)</label>
-                <input type="time" id="inputHorarioFin" name="horarioFin" required>
-
-                <label for="inputTempAire">Temperatura para prender el aire (°C)</label>
-                <input type="number" step="0.1" id="inputTempAire" name="tempAire" min="0" max="50" required>
-
-                <label for="inputVoltaje">Voltaje (V)</label>
-                <input type="number" step="0.1" id="inputVoltaje" name="voltaje" min="0" required>
-
-                <label for="inputUmbralCorriente">Umbral corriente elevada (A)</label>
-                <input type="number" step="0.01" id="inputUmbralCorriente" name="umbralCorriente" min="0" required>
-
-                <label for="inputCostoKvh">$ Costo por kvh</label>
-                <input type="number" step="0.01" id="inputCostoKvh" name="costoKvh" min="0" required>
-
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="btnCancelarConfigSistema">Cancelar</button>
-                    <button type="submit" class="btn">Guardar Cambios</button>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="horarioInicio">Horario Inicio</label>
+                        <input type="time" id="horarioInicio" name="horarioInicio" required value="08:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="horarioFin">Horario Fin</label>
+                        <input type="time" id="horarioFin" name="horarioFin" required value="20:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="tempAire">Temperatura AC (°C)</label>
+                        <input type="number" id="tempAire" name="tempAire" step="0.1" required value="25.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="umbralCorriente">Umbral Corriente (A)</label>
+                        <input type="number" id="umbralCorriente" name="umbralCorriente" step="0.01" required
+                            value="21.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="voltaje">Voltaje (V)</label>
+                        <input type="number" id="voltaje" name="voltaje" step="0.1" required value="220.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="costoKwh">Costo por kWh ($)</label>
+                        <input type="number" id="costoKwh" name="costoKwh" step="0.001" required value="0.25">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-glass" id="btnCancelarConfigSistema">Cancelar</button>
+                    <button type="submit" class="btn-glass primary">Guardar Configuración</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        // ==============================
-        // Utils y data
-        // ==============================
-
-
-        // Estructuras locales
-        let resumenes = {}; // sector: resumen más actual
-        let dispositivos = {}; // sector: {aire:bool,luces:bool}
-        const charts = {}; // sector: {smoothie, ts}
-        const eventosRecibidos = new Set();
-
-
-        // ==============================
-        // Renderizado/principal
-        // ==============================
-        function renderSectorCard(sector, dataResumen, dataDispositivo) {
-            const grid = document.getElementById('sectoresGrid');
-            let card = document.getElementById('card-' + sector);
-
-
-            if (!card) {
-                // Crear nuevo
-                card = document.createElement('div');
-                card.className = "card";
-                card.id = "card-" + sector;
-                card.innerHTML = `
-                <h2>Oficina ${sector}</h2>
-                <table class="info-table" id="info-${sector}">
-                    <tr><td class="label">Actualizado:</td><td class="value fecha">${formatearFecha(dataResumen?.timestamp || 0)}</td></tr>
-                    <tr><td class="label">Corriente:</td><td class="value corriente">${dataResumen?.corriente_a ?? ''} A</td></tr>
-                    <tr><td class="label">Consumo:</td><td class="value consumo">${dataResumen?.consumo_kvh ?? ''} Kvh</td></tr>
-                    <tr><td class="label">Consumo total:</td><td class="value consumo_total">${dataResumen?.consumo_total_kvh ?? ''} Kvh</td></tr>
-                    <tr><td class="label">Temp. mín/máx:</td><td class="value temp"><span class="min_temp">${dataResumen?.min_temp ?? ''}</span>°C / <span class="max_temp">${dataResumen?.max_temp ?? ''}</span>°C</td></tr>
-                    <tr><td class="label">Tiempo presente:</td><td class="value tiempo_presente">${dataResumen?.tiempo_presente ?? ''} seg</td></tr>
-                    <tr><td class="label">M. estimado:</td><td class="value monto_estimado">$${dataResumen?.monto_estimado ?? ''}</td></tr>
-                    <tr><td class="label">M. total:</td><td class="value monto_total">$${dataResumen?.monto_total ?? ''}</td></tr>
-                </table>
-                <div class="status-row" id="statusRow-${sector}">
-                    <!-- switches dispositivos -->
+    <!-- Nuevos Modales para Paradigmas -->
+    <div id="modalMPI" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-network-wired"></i> Procesamiento Distribuido - MPI</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Análisis Distribuido en Tiempo Real</h4>
+                    <p>Simulando procesamiento paralelo con 4 nodos virtuales</p>
                 </div>
-                <div class="graficotitle">Consumo en tiempo real</div>
-                <div class="chart-wrap"><canvas id="chart-${sector}" width="500" height="170"></canvas></div>
-            `;
-                grid.appendChild(card);
+                <div id="mpiResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runMPIAnalysis('efficiency')">
+                        <i class="fas fa-calculator"></i> Calcular Eficiencia
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.runMPIAnalysis('anomaly')">
+                        <i class="fas fa-exclamation-triangle"></i> Detectar Anomalías
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalMPI')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div id="modalOpenMP" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-code-branch"></i> Paralelización - OpenMP</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Procesamiento Paralelo de Streams de Datos</h4>
+                    <p>Utilizando Web Workers para simular paralelismo</p>
+                </div>
+                <div id="openmpResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runOpenMPAnalysis('stats')">
+                        <i class="fas fa-chart-bar"></i> Estadísticas Avanzadas
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.runOpenMPAnalysis('streams')">
+                        <i class="fas fa-wave-square"></i> Procesar Streams
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalOpenMP')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                // Crear smoothie y TimeSeries solo UNA vez
-                const timeSeries = new TimeSeries();
-                const smoothie = new SmoothieChart({
-                    millisPerPixel: 60,
-                    interpolation: 'bezier',
-                    grid: {
-                        strokeStyle: 'rgba(51,102,204,0.07)',
-                        fillStyle: 'transparent',
-                        verticalSections: 3,
-                        millisPerLine: 1300
-                    },
-                    labels: { fillStyle: '#415a77', precision: 0 },
-                    minValue: 0
-                });
-                smoothie.addTimeSeries(timeSeries, {
-                    strokeStyle: '#41b9f7',
-                    lineWidth: 2.1
-                });
-                smoothie.streamTo(card.querySelector('canvas'), 700);
-                charts[sector] = { smoothie, timeSeries };
-            }
+    <div id="modalProlog" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-robot"></i> Sistema de Reglas - Prolog</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Motor de Reglas Inteligentes</h4>
+                    <p>Evaluando condiciones y generando recomendaciones automáticas</p>
+                </div>
+                <div id="prologResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runPrologEvaluation()">
+                        <i class="fas fa-play"></i> Ejecutar Evaluación
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalProlog')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div id="modalHaskell" class="modal-overlay paradigm-modal">
+        <div class="modal glass-card large">
+            <h3><i class="fas fa-lambda"></i> Análisis Funcional - Haskell</h3>
+            <div class="paradigm-content">
+                <div class="paradigm-info">
+                    <h4>Programación Funcional Pura</h4>
+                    <p>Composición de funciones y análisis inmutable de datos</p>
+                </div>
+                <div id="haskellResults" class="results-container">
+                    <!-- Resultados se cargarán aquí -->
+                </div>
+                <div class="paradigm-actions">
+                    <button class="btn-glass" onclick="dashboard.runHaskellAnalysis('efficiency')">
+                        <i class="fas fa-chart-line"></i> Análisis de Eficiencia
+                    </button>
+                    <button class="btn-glass" onclick="dashboard.runHaskellAnalysis('trend')">
+                        <i class="fas fa-project-diagram"></i> Análisis de Tendencia
+                    </button>
+                    <button class="btn-glass primary" onclick="dashboard.closeModal('modalHaskell')">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Actualizar tabla resumen
-            const tabla = card.querySelector('.info-table');
-            if (dataResumen) {
-                tabla.querySelector('.fecha').innerText = formatearFecha(dataResumen.timestamp);
-                tabla.querySelector('.corriente').innerText = (dataResumen.corriente_a ?? "") + " A";
-                tabla.querySelector('.consumo').innerText = (dataResumen.consumo_kvh ?? "") + " Kvh";
-                tabla.querySelector('.consumo_total').innerText = (dataResumen.consumo_total_kvh ?? "") + " Kvh";
-                tabla.querySelector('.min_temp').innerText = dataResumen.min_temp ?? "";
-                tabla.querySelector('.max_temp').innerText = dataResumen.max_temp ?? "";
-                tabla.querySelector('.tiempo_presente').innerText = (dataResumen.tiempo_presente ?? "") + " seg";
-                tabla.querySelector('.monto_estimado').innerText = "$" + (dataResumen.monto_estimado ?? "");
-                tabla.querySelector('.monto_total').innerText = "$" + (dataResumen.monto_total ?? "");
-            }
-            // Actualizar switches estado dispositivos:
-            const statusRow = card.querySelector('.status-row');
-            statusRow.innerHTML = '';
-            ['luces', 'aire'].forEach(disp => {
-                const est = dataDispositivo && dataDispositivo[disp];
-                const label = disp === "aire" ? "Aire Acond." : "Luces";
-                const checked = est ? 'checked' : '';
-                const statusDiv = document.createElement('div');
-                statusDiv.className = "status-item";
-                statusDiv.innerHTML = `
-                <label>
-                    <input type="checkbox" class="switch" onchange="toggleDispositivo('${sector}','${disp}',this.checked)" ${checked}>
-                    ${label}
-                </label>
-            `;
-                statusRow.appendChild(statusDiv);
-            });
+    <!-- Footer Profesional -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-graduation-cap"></i> Paradigmas y Lenguajes de Programación</h4>
+                <p>FCEQyN - Universidad Nacional de Misiones</p>
+                <p>Trabajo Final Integrador - 2025</p>
+            </div>
 
+            <div class="footer-section">
+                <h4><i class="fas fa-bolt"></i> Sistema Inteligente</h4>
+                <div class="tech-stack">
+                    <span class="tech-badge">MPI</span>
+                    <span class="tech-badge">OpenMP</span>
+                    <span class="tech-badge">Haskell</span>
+                    <span class="tech-badge">Prolog</span>
+                    <span class="tech-badge">Firebase</span>
+                    <span class="tech-badge">IoT</span>
+                </div>
+            </div>
 
-            // Finalmente, append de nuevo punto al gráfico
-            if (dataResumen && charts[sector]) {
-                charts[sector].timeSeries.append(new Date().getTime(), dataResumen.consumo_kvh || 0);
-            }
-        }
+            <div class="footer-section">
+                <h4><i class="fas fa-code"></i> Tecnologías Implementadas</h4>
+                <ul class="tech-list">
+                    <li><i class="fab fa-js"></i> JavaScript & Chart.js</li>
+                    <li><i class="fas fa-database"></i> Firebase Realtime DB</li>
+                    <li><i class="fas fa-microchip"></i> MQTT & WebSockets</li>
+                    <li><i class="fas fa-server"></i> Node.js Backend</li>
+                    <li><i class="fas fa-palette"></i> CSS3 & Glass Morphism</li>
+                </ul>
+            </div>
 
+            <div class="footer-section">
+                <h4><i class="fas fa-users"></i> Desarrollado por</h4>
+                <p>Küster Joaquín, Da Silva Marcos, Martinez Lázaro Ezequiel</p>
+                <div class="social-links">
+                    <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
+                </div>
+            </div>
+        </div>
 
-        function formatearFecha(ts) {
-            if (!ts) return "--";
-            const d = new Date(ts * 1000);
-            return d.toLocaleString("es-AR", { hour12: false });
-        }
+        <div class="footer-bottom">
+            <div class="footer-bottom-content">
+                <p>&copy; 2025 Sistema de Monitoreo Energético Inteligente. Todos los derechos reservados.</p>
+                <div class="footer-stats">
+                    <span class="stat"><i class="fas fa-heart"></i> Hecho con pasión</span>
+                    <span class="stat"><i class="fas fa-code"></i> Última actualización: <span
+                            id="lastUpdate"></span></span>
+                </div>
+            </div>
+        </div>
+    </footer>
 
+    <!-- Notificaciones Toast -->
+    <div id="toastContainer" class="toast-container"></div>
 
-        // ==============================
-        // Eventos flotantes
-        // ==============================
-        function showEvent(event) {
-            if (eventosRecibidos.has(event.id + "-" + event.timestamp)) return;
-            eventosRecibidos.add(event.id + "-" + event.timestamp);
-
-
-            // Elementos visuales
-            const eventsPanel = document.getElementById('eventsPanel');
-            let tipo = 'warning';
-            if (event.tipo == 1) tipo = 'success';
-            if (event.tipo == 2) tipo = 'danger';
-
-
-            const div = document.createElement('div');
-            div.className = "event " + tipo;
-            div.innerHTML = `<div class="time">${formatearFecha(event.timestamp)}</div>
-                             <div class="message">${event.sector} - ${event.motivo} (${event.detalle})</div>`;
-            eventsPanel.prepend(div);
-
-
-            setTimeout(() => {
-                anime({
-                    targets: div,
-                    opacity: 0,
-                    height: 0,
-                    marginBottom: 0,
-                    padding: 0,
-                    duration: 260,
-                    easing: "easeOutExpo",
-                    complete: () => div.remove()
-                });
-            }, 4200);
-        }
-
-
-        // ==============================
-        // Control de dispositivos
-        // ==============================
-        function toggleDispositivo(sector, dispositivo, estado) {
-            const ws = new WebSocket("ws://" + window.location.host + "/control");
-            ws.onopen = () => ws.send(JSON.stringify({
-                sector: sector,
-                dispositivo: dispositivo,
-                estado: estado
-            }));
-            ws.onerror = err => console.error("WebSocket control error:", err);
-        }
-
-
-        // ==============================
-        // WebSocket principal (ajusta el parsing si tu backend cambia)
-        // ==============================
-        const socket = new WebSocket("ws://" + window.location.host + "/ws");
-        socket.onmessage = function (event) {
-            let data;
-            try { data = JSON.parse(event.data); } catch { return; }
-
-
-            console.log("Datos recibidos por WebSocket:", data);
-
-
-            // Espera: {tipo:..., data:...}
-            if (data.tipo === 'resumenes') {
-                resumenes = data.data;
-                // Render card por sector
-                for (const sector in resumenes) {
-                    renderSectorCard(sector, resumenes[sector], dispositivos[sector]);
-                }
-            }
-            if (data.tipo === 'dispositivos') {
-                dispositivos = data.data;
-                for (const sector in dispositivos) {
-                    renderSectorCard(sector, resumenes[sector], dispositivos[sector]);
-                }
-            }
-            if (data.tipo === 'eventos' && Array.isArray(data.data)) {
-                data.data.forEach(ev => showEvent(ev));
-            }
-        };
-        socket.onerror = function (error) {
-            console.error('WebSocket error:', error);
-        };
-        socket.onclose = function () {
-            setTimeout(() => window.location.reload(), 5000);
-        };
-
-
-        // Exponer para switches:
-        window.toggleDispositivo = toggleDispositivo;
-
-        // ==============================
-        // Nuevas funcionalidades para modales
-        // ==============================
-        const btnAgregarOficina = document.getElementById('btnAgregarOficina');
-        const modalAgregarOficina = document.getElementById('modalAgregarOficina');
-        const btnCancelarAgregarOficina = document.getElementById('btnCancelarAgregarOficina');
-        const formAgregarOficina = document.getElementById('formAgregarOficina');
-        const inputNombreOficina = document.getElementById('inputNombreOficina');
-        const errorNombreOficina = document.getElementById('errorNombreOficina');
-
-        const btnConfigSistema = document.getElementById('btnConfigSistema');
-        const modalConfigSistema = document.getElementById('modalConfigSistema');
-        const btnCancelarConfigSistema = document.getElementById('btnCancelarConfigSistema');
-        const formConfigSistema = document.getElementById('formConfigSistema');
-
-        // Abrir modal Agregar Oficina
-        btnAgregarOficina.addEventListener('click', () => {
-            errorNombreOficina.style.display = 'none';
-            inputNombreOficina.value = '';
-            modalAgregarOficina.classList.add('active');
-            inputNombreOficina.focus();
-        });
-
-        // Cancelar Agregar Oficina
-        btnCancelarAgregarOficina.addEventListener('click', () => {
-            modalAgregarOficina.classList.remove('active');
-        });
-
-        // Abrir modal Configuración Sistema
-        btnConfigSistema.addEventListener('click', () => {
-            modalConfigSistema.classList.add('active');
-            // Cargar valores actuales en inputs si tienes guardados en localStorage o variables
-            cargarConfiguracionActual();
-        });
-
-        // Cancelar Configuración Sistema
-        btnCancelarConfigSistema.addEventListener('click', () => {
-            modalConfigSistema.classList.remove('active');
-        });
-
-        // Validar y agregar Oficina
-        formAgregarOficina.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const nuevoSector = inputNombreOficina.value.trim();
-            if (!nuevoSector.match(/^[A-Za-z0-9]+$/)) {
-                errorNombreOficina.textContent = 'Nombre inválido: solo letras y números sin espacios.';
-                errorNombreOficina.style.display = 'block';
-                return;
-            }
-            // Verificar unicidad
-            if (Object.keys(resumenes).includes(nuevoSector) || Object.keys(dispositivos).includes(nuevoSector)) {
-                errorNombreOficina.textContent = 'El nombre del sector ya existe.';
-                errorNombreOficina.style.display = 'block';
-                return;
-            }
-            errorNombreOficina.style.display = 'none';
-            // Agregar sector localmente (puede ajustarse si hay backend)
-            resumenes[nuevoSector] = {}; // vacío al principio
-            dispositivos[nuevoSector] = { aire: false, luces: false };
-            renderSectorCard(nuevoSector, resumenes[nuevoSector], dispositivos[nuevoSector]);
-            modalAgregarOficina.classList.remove('active');
-        });
-
-        // Cargar configuración actual en modal (desde localStorage o variables)
-        function cargarConfiguracionActual() {
-            const config = JSON.parse(localStorage.getItem('configSistema')) || {};
-
-            formConfigSistema.horarioInicio.value = config.horarioInicio || '';
-            formConfigSistema.horarioFin.value = config.horarioFin || '';
-            formConfigSistema.tempAire.value = config.tempAire || '';
-            formConfigSistema.voltaje.value = config.voltaje || '';
-            formConfigSistema.umbralCorriente.value = config.umbralCorriente || '';
-            formConfigSistema.costoKvh.value = config.costoKvh || '';
-        }
-
-        // Guardar configuración
-        formConfigSistema.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const config = {
-                horarioInicio: formConfigSistema.horarioInicio.value,
-                horarioFin: formConfigSistema.horarioFin.value,
-                tempAire: parseFloat(formConfigSistema.tempAire.value),
-                voltaje: parseFloat(formConfigSistema.voltaje.value),
-                umbralCorriente: parseFloat(formConfigSistema.umbralCorriente.value),
-                costoKvh: parseFloat(formConfigSistema.costoKvh.value),
-            };
-
-            // Validar mínimos/máximos si quieres aquí
-
-            localStorage.setItem('configSistema', JSON.stringify(config));
-            alert('Configuración guardada correctamente.');
-            modalConfigSistema.classList.remove('active');
-
-            // Opcional: enviar esta config a backend vía WebSocket o API si tienes implementado
-        });
-
-        // Cerrar modales al hacer clic afuera de la caja modal
-        window.addEventListener('click', (e) => {
-            if (e.target === modalAgregarOficina) {
-                modalAgregarOficina.classList.remove('active');
-            }
-            if (e.target === modalConfigSistema) {
-                modalConfigSistema.classList.remove('active');
-            }
-        });
-
-    </script>
+    <script src="assets/theme-toggle.js"></script>
+    <script src="assets/dashboard-enhanced.js"></script>
 </body>
-
 
 </html>

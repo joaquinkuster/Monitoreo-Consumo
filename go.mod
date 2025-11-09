@@ -6,8 +6,6 @@ require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.5.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/r3labs/sse/v2 v2.10.0
-	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.243.0
 )
 
@@ -52,6 +50,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
@@ -62,5 +61,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250721164621-a45f3dfb1074 // indirect
 	google.golang.org/grpc v1.74.2 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 )
