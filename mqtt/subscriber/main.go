@@ -157,23 +157,49 @@ func actualizarDispositivos(data []byte) {
 	mu.Unlock()
 }
 
+// Modificar la función actualizarOficinas
+// Cambia el WebSocket listener para oficinas
 func actualizarOficinas(data []byte) {
 	var m struct {
 		Tipo string                 `json:"tipo"`
 		Data map[string]interface{} `json:"data"`
 	}
 	if err := json.Unmarshal(data, &m); err != nil {
+		log.Printf("❌ Error parseando datos de oficinas: %v", err)
 		return
 	}
-	if m.Tipo != "oficinas" {
-		return
+
+	if m.Tipo == "oficinas" {
+		// Manejar actualización de lista de oficinas
+		mu.Lock()
+		oficinas = []string{}
+		for id := range m.Data {
+			oficinas = append(oficinas, id)
+
+			// Inicializar estado para nueva oficina si no existe
+			if _, existe := mapaEstados[id]; !existe {
+				mapaEstados[id] = &EstadoOficina{
+					UltimaLectura: time.Now().Unix(),
+					LuzEncendida:  true,
+					AireEncendido: true,
+				}
+				log.Printf("✅ Nueva oficina inicializada: %s", id)
+			}
+		}
+		mu.Unlock()
+
+		// Actualizar Firebase con la nueva lista de oficinas
+		go func() {
+			if err := actualizarOficinasEnFirebase(context.Background()); err != nil {
+				log.Printf("❌ Error actualizando oficinas en Firebase: %v", err)
+			}
+		}()
+
+		log.Printf("📋 Lista de oficinas actualizada: %v", oficinas)
+	} else if m.Tipo == "eliminar_oficina" {
+		// Manejar eliminación de oficina
+		manejarEliminarOficina(data)
 	}
-	mu.Lock()
-	oficinas = []string{}
-	for id := range m.Data {
-		oficinas = append(oficinas, id)
-	}
-	mu.Unlock()
 }
 
 func obtenerEstado(oficina string) *EstadoOficina {
@@ -333,6 +359,28 @@ func generarResumen(ahora int64, estado *EstadoOficina) Resumen {
 	}
 }
 
+// Agregar función para actualizar lista de oficinas en Firebase
+func actualizarOficinasEnFirebase(ctx context.Context) error {
+	mu.RLock()
+	oficinasData := make(map[string]interface{})
+	for _, oficina := range oficinas {
+		oficinasData[oficina] = map[string]interface{}{
+			"nombre":    oficina,
+			"activa":    true,
+			"timestamp": time.Now().Unix(),
+		}
+	}
+	mu.RUnlock()
+
+	ref := clienteFirebase.NewRef("monitoreo_consumo/oficinas")
+	if err := ref.Set(ctx, oficinasData); err != nil {
+		return fmt.Errorf("error actualizando oficinas en Firebase: %v", err)
+	}
+
+	log.Printf("✅ Oficinas actualizadas en Firebase: %v", oficinas)
+	return nil
+}
+
 func guardarResumen(ctx context.Context, oficina string, resumen Resumen) error {
 	ref := clienteFirebase.NewRef(fmt.Sprintf("monitoreo_consumo/oficinas/%s/resumenes", oficina))
 	newRef, err := ref.Push(ctx, resumen)
@@ -408,4 +456,64 @@ func main() {
 	})
 
 	select {}
+}
+
+// En subscriber/main.go, agrega esta función
+func manejarEliminarOficina(data []byte) {
+	var msg struct {
+		Tipo string `json:"tipo"`
+		Data struct {
+			Oficina string `json:"oficina"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(data, &msg); err != nil {
+		log.Printf("❌ Error parseando eliminación de oficina: %v", err)
+		return
+	}
+
+	if msg.Tipo != "eliminar_oficina" {
+		return
+	}
+
+	oficina := msg.Data.Oficina
+	fmt.Printf("🗑️ Eliminando oficina: %s\n", oficina)
+
+	mu.Lock()
+	// Eliminar del slice de oficinas
+	for i, o := range oficinas {
+		if o == oficina {
+			oficinas = append(oficinas[:i], oficinas[i+1:]...)
+			break
+		}
+	}
+
+	// Eliminar del mapa de estados
+	delete(mapaEstados, oficina)
+	mu.Unlock()
+
+	// Eliminar de Firebase
+	ctx := context.Background()
+	if err := eliminarOficinaFirebase(ctx, oficina); err != nil {
+		log.Printf("❌ Error eliminando oficina %s de Firebase: %v", oficina, err)
+	} else {
+		log.Printf("✅ Oficina %s eliminada completamente", oficina)
+	}
+}
+
+// Función para eliminar oficina de Firebase
+func eliminarOficinaFirebase(ctx context.Context, oficina string) error {
+	ref := clienteFirebase.NewRef(fmt.Sprintf("monitoreo_consumo/oficinas/%s", oficina))
+	if err := ref.Delete(ctx); err != nil {
+		return fmt.Errorf("error eliminando oficina de Firebase: %v", err)
+	}
+
+	// También eliminar resumenes y avisos asociados
+	refResumenes := clienteFirebase.NewRef(fmt.Sprintf("monitoreo_consumo/resumenes/%s", oficina))
+	refResumenes.Delete(ctx)
+
+	refAvisos := clienteFirebase.NewRef(fmt.Sprintf("monitoreo_consumo/avisos/%s", oficina))
+	refAvisos.Delete(ctx)
+
+	return nil
 }

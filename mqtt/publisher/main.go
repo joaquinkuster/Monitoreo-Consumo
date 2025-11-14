@@ -79,17 +79,17 @@ func EsHorarioLaboral(t time.Time) bool {
 
 func DetectarPresencia(t time.Time) bool {
 	// TEMPORAL: SIEMPRE true para testing - COMENTAR ESTO DESPUÉS
-	fmt.Printf("🕐 Hora actual: %s, Horario config: %.2f-%.2f\n",
-		t.Format("15:04"), params.HoraInicio, params.HoraFin)
+	// fmt.Printf("🕐 Hora actual: %s, Horario config: %.2f-%.2f\n",
+	// 	t.Format("15:04"), params.HoraInicio, params.HoraFin)
 
 	// FORZAR SIEMPRE TRUE PARA TESTING
-	return true
+	// return true
 
 	// COMENTA TODO ESTO TEMPORALMENTE:
-	// dia := t.Weekday()
-	// hora := float64(t.Hour()) + float64(t.Minute())/100.0
-	// return dia >= time.Monday && dia <= time.Friday &&
-	//     hora >= params.HoraInicio && hora < params.HoraFin
+	dia := t.Weekday()
+	hora := float64(t.Hour()) + float64(t.Minute())/100.0
+	return dia >= time.Monday && dia <= time.Friday &&
+		hora >= params.HoraInicio && hora < params.HoraFin
 }
 
 func CalcularSiguienteTemperatura(prev float64) float64 {
@@ -148,19 +148,36 @@ func actualizarDispositivos(data []byte) {
 
 func actualizarOficinas(data []byte) {
 	var msg struct {
-		Tipo string
-		Data map[string]interface{}
+		Tipo string                 `json:"tipo"`
+		Data map[string]interface{} `json:"data"`
 	}
 	err := json.Unmarshal(data, &msg)
-	if err != nil || msg.Tipo != "oficinas" {
+	if err != nil {
+		fmt.Printf("❌ Error parseando mensaje de oficinas: %v\n", err)
 		return
 	}
-	mu.Lock()
-	oficinas = []string{}
-	for oficina := range msg.Data {
-		oficinas = append(oficinas, oficina)
+
+	if msg.Tipo == "oficinas" {
+		// Manejar actualización de lista
+		mu.Lock()
+		nuevasOficinas := []string{}
+		for oficina := range msg.Data {
+			nuevasOficinas = append(nuevasOficinas, oficina)
+			// Inicializar temperatura para nueva oficina si no existe
+			if _, existe := ultimaTemperatura[oficina]; !existe {
+				temperaturaInicial := rand.Float64()*(temperaturaMaxBase-temperaturaMinBase) + temperaturaMinBase
+				ultimaTemperatura[oficina] = temperaturaInicial
+				fmt.Printf("✅ Nueva oficina detectada: %s (Temp inicial: %.1f°C)\n", oficina, temperaturaInicial)
+			}
+		}
+		oficinas = nuevasOficinas
+		mu.Unlock()
+
+		fmt.Printf("✅ LISTA DE OFICINAS ACTUALIZADA: %v\n", oficinas)
+	} else if msg.Tipo == "eliminar_oficina" {
+		// Manejar eliminación
+		manejarEliminarOficina(data)
 	}
-	mu.Unlock()
 }
 
 func actualizarConfiguracion(data []byte) {
@@ -287,4 +304,41 @@ func main() {
 			SimularYPublicar(clienteMQTT, oficina)
 		}
 	}
+}
+
+// En publisher/main.go, agrega esta función
+func manejarEliminarOficina(data []byte) {
+	var msg struct {
+		Tipo string `json:"tipo"`
+		Data struct {
+			Oficina string `json:"oficina"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(data, &msg); err != nil {
+		fmt.Printf("❌ Error parseando eliminación de oficina: %v\n", err)
+		return
+	}
+
+	if msg.Tipo != "eliminar_oficina" {
+		return
+	}
+
+	oficina := msg.Data.Oficina
+	fmt.Printf("🗑️ Eliminando oficina del publisher: %s\n", oficina)
+
+	mu.Lock()
+	// Eliminar del slice de oficinas
+	for i, o := range oficinas {
+		if o == oficina {
+			oficinas = append(oficinas[:i], oficinas[i+1:]...)
+			break
+		}
+	}
+
+	// Eliminar temperatura
+	delete(ultimaTemperatura, oficina)
+	mu.Unlock()
+
+	fmt.Printf("✅ Oficina %s eliminada del publisher. Oficinas restantes: %v\n", oficina, oficinas)
 }

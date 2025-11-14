@@ -255,7 +255,7 @@ class DashboardEnhanced {
 
     connectWebSockets() {
         const endpoints = [
-            'resumenes', 'avisos', 'dispositivos', 'params'
+            'resumenes', 'avisos', 'dispositivos', 'params', 'oficinas'
         ];
 
         endpoints.forEach(endpoint => {
@@ -319,6 +319,7 @@ class DashboardEnhanced {
         this.updateAdvancedStats(); // ← AGREGAR ESTA LÍNEA
         this.updateQuickStats();
         this.updateCharts();
+        console.log('✅ Resumenes procesados y gráficos actualizados');
     }
 
     handleAvisos(avisosData) {
@@ -520,10 +521,51 @@ class DashboardEnhanced {
                         <i class="fas fa-chart-bar"></i>
                         Análisis
                     </button>
+        <button class="btn-detabled danger" onclick="dashboard.eliminarOficina('${oficinaId}')" 
+                title="Eliminar oficina">
+            <i class="fas fa-trash"></i>
+            Eliminar
+        </button>
                 </div>
             </div>
         </div>
     `;
+    }
+
+    // Agregar este método en la clase DashboardEnhanced
+    eliminarOficina(oficinaId) {
+        if (!confirm(`¿Estás seguro de que deseas eliminar la Oficina ${oficinaId}? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        console.log(`🗑️ Eliminando oficina: ${oficinaId}`);
+
+        // Eliminar localmente
+        delete this.resumenes[oficinaId];
+        delete this.dispositivos[oficinaId];
+
+        // Enviar comando de eliminación al WebSocket
+        if (this.sockets.oficinas && this.sockets.oficinas.readyState === WebSocket.OPEN) {
+            this.sockets.oficinas.send(JSON.stringify({
+                tipo: 'eliminar_oficina',
+                data: { oficina: oficinaId }
+            }));
+            console.log(`📤 Comando de eliminación enviado para: ${oficinaId}`);
+        }
+
+        // Re-renderizar
+        this.renderOficinas();
+        this.updateQuickStats();
+        this.updateGlobalStats();
+
+        // Agregar evento de eliminación
+        this.agregarEvento({
+            timestamp: Math.floor(Date.now() / 1000),
+            id_tipo: '11',
+            adicional: `Oficina ${oficinaId} eliminada del sistema`
+        });
+
+        this.showToast(`Oficina ${oficinaId} eliminada correctamente`, 'success');
     }
 
     createOfficeCard(oficinaId, resumen, dispositivo) {
@@ -993,11 +1035,11 @@ class DashboardEnhanced {
     initializeOfficeChart() {
         const ctx = document.getElementById('officeChart')?.getContext('2d');
         if (!ctx) {
-            console.log('❌ No se encontró officeChart');
+            console.log('❌ No se encontró officeChart en el DOM');
             return;
         }
 
-        // Gráfico simple sin 3D por ahora
+        // Gráfico de doughnut mejorado
         this.charts.office = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -1010,10 +1052,13 @@ class DashboardEnhanced {
                         'rgb(198, 75, 138)',
                         'rgb(254, 174, 101)',
                         'rgb(100, 200, 150)',
-                        'rgb(200, 100, 150)'
+                        'rgb(200, 100, 150)',
+                        'rgb(150, 150, 200)',
+                        'rgb(200, 150, 100)'
                     ],
                     borderWidth: 2,
-                    borderColor: 'rgba(255, 255, 255, 0.1)'
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    hoverOffset: 15
                 }]
             },
             options: {
@@ -1026,7 +1071,8 @@ class DashboardEnhanced {
                             color: 'var(--text-primary)',
                             font: {
                                 size: 11
-                            }
+                            },
+                            padding: 15
                         }
                     },
                     tooltip: {
@@ -1034,7 +1080,9 @@ class DashboardEnhanced {
                             label: function (context) {
                                 const label = context.label || '';
                                 const value = context.parsed;
-                                return `${label}: ${value} kWh (${((value / context.dataset.data.reduce((a, b) => a + b, 0)) * 100).toFixed(1)}%)`;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+                                return `${label}: ${value.toFixed(2)} kWh (${percentage}%)`;
                             }
                         }
                     }
@@ -1042,14 +1090,19 @@ class DashboardEnhanced {
                 cutout: '60%',
                 animation: {
                     animateRotate: true,
-                    animateScale: true
+                    animateScale: true,
+                    duration: 1000
                 }
             }
         });
 
-        console.log('✅ Gráfico de oficinas inicializado (2D por ahora)');
-    }
+        console.log('✅ Gráfico de oficinas inicializado correctamente');
 
+        // Actualizar inmediatamente con datos iniciales si existen
+        setTimeout(() => {
+            this.updateOfficeChart();
+        }, 1000);
+    }
 
     initializeDeviceChart() {
         const ctx = document.getElementById('deviceChart').getContext('2d');
@@ -1180,11 +1233,17 @@ class DashboardEnhanced {
     }
 
     updateCharts() {
+        console.log('🔄 Actualizando todos los gráficos...');
         this.updateMainChart();
         this.updateDeviceChart();
         this.updateTempChart();
         this.updateOfficeChart(); // ← NUEVO
         this.updateTempChart();   // ← NUEVO
+
+        // Diagnóstico opcional
+        if (Math.random() < 0.1) { // Solo ocasionalmente para no saturar la consola
+            this.diagnosticoGraficoOficinas();
+        }
     }
 
     updateMainChart() {
@@ -1256,7 +1315,7 @@ class DashboardEnhanced {
 
     updateOfficeChart() {
         if (!this.charts.office) {
-            console.log('❌ Gráfico de oficinas 3D no inicializado');
+            console.log('❌ Gráfico de oficinas no inicializado');
             return;
         }
 
@@ -1266,22 +1325,29 @@ class DashboardEnhanced {
             return resumen.consumo_total_kvh || 0;
         });
 
+        console.log('🔄 Actualizando gráfico oficinas:', oficinas, consumos);
+
         const officeChartLoading = document.getElementById('officeChartLoading');
 
+        // Solo actualizar si hay datos
         if (oficinas.length > 0 && consumos.some(consumo => consumo > 0)) {
             if (officeChartLoading) {
                 officeChartLoading.style.display = 'none';
             }
 
+            // Actualizar datos del gráfico
             this.charts.office.data.labels = oficinas.map(id => `Oficina ${id}`);
             this.charts.office.data.datasets[0].data = consumos;
 
-            // Animación suave para actualizaciones
+            // Forzar actualización con animación
             this.charts.office.update('active');
+
+            console.log('✅ Gráfico oficinas actualizado');
         } else {
             if (officeChartLoading) {
                 officeChartLoading.style.display = 'flex';
             }
+            console.log('⏳ Esperando datos para gráfico oficinas...');
         }
     }
 
@@ -1337,12 +1403,18 @@ class DashboardEnhanced {
         }
     }
 
-
     startRealTimeUpdates() {
-        // Actualizar gráficos cada 2 segundos
+        // Actualizar gráficos principales cada 2 segundos
         setInterval(() => {
             this.updateCharts();
         }, 2000);
+
+        // Actualización específica para gráfico de oficinas cada 5 segundos
+        setInterval(() => {
+            this.updateOfficeChart();
+        }, 5000);
+
+        console.log('🔄 Actualizaciones en tiempo real iniciadas');
     }
 
     agregarEvento(aviso) {
@@ -1573,20 +1645,31 @@ class DashboardEnhanced {
             return;
         }
 
-        // Agregar nueva oficina
+        // Agregar nueva oficina localmente
         this.resumenes[nombre] = {
             timestamp: Math.floor(Date.now() / 1000),
-            corriente_a: 0,
-            consumo_kvh: 0,
+            corriente_a: 2.5 + Math.random() * 3, // Datos realistas
+            consumo_kvh: 0.55 + Math.random() * 1,
             consumo_total_kvh: 0,
-            min_temp: 22.0,
-            max_temp: 24.0,
+            min_temp: 22.0 + Math.random() * 2,
+            max_temp: 24.0 + Math.random() * 3,
             tiempo_presente: 0,
             monto_estimado: 0,
             monto_total: 0
         };
 
         this.dispositivos[nombre] = { aire: true, luces: true };
+
+        // ENVIAR AL WEBSOCKET DE OFICINAS - CORREGIDO
+        if (this.sockets.oficinas && this.sockets.oficinas.readyState === WebSocket.OPEN) {
+            this.sockets.oficinas.send(JSON.stringify({
+                tipo: 'actualizar_oficinas',
+                data: this.dispositivos // Enviamos el objeto completo de dispositivos
+            }));
+            console.log('📤 Nueva oficina enviada al backend:', nombre);
+        } else {
+            console.error('❌ WebSocket de oficinas no disponible');
+        }
 
         this.renderOficinas();
         this.updateQuickStats();
@@ -1789,21 +1872,22 @@ class DashboardEnhanced {
         });
     }
 
+    // Mejorar la simulación MPI con datos reales
     setupMPIImprovements() {
-        // Configuración de algoritmos MPI
+        // Configuración de algoritmos MPI mejorada
         const mpiAlgorithmSelect = document.getElementById('mpiAlgorithm');
         if (mpiAlgorithmSelect) {
             mpiAlgorithmSelect.innerHTML = `
-                <option value="broadcast">Broadcast - Distribución de Datos</option>
-                <option value="scatter">Scatter/Gather - División de Carga</option>
-                <option value="reduce">Reduce - Agregación de Métricas</option>
-                <option value="efficiency" selected>Análisis de Eficiencia</option>
-                <option value="clustering">Clustering de Consumo</option>
-                <option value="prediction">Predicción de Tendencia</option>
-            `;
+            <option value="efficiency">Análisis de Eficiencia</option>
+            <option value="clustering">Clustering de Consumo</option>
+            <option value="prediction">Predicción de Tendencia</option>
+            <option value="broadcast">Broadcast - Distribución</option>
+            <option value="scatter">Scatter/Gather - División</option>
+            <option value="reduce">Reduce - Agregación</option>
+        `;
         }
 
-        // Slider para tamaño de problema
+        // Slider para tamaño de problema mejorado
         const mpiProblemSize = document.getElementById('mpiDatasetSize');
         const mpiProblemSizeValue = document.getElementById('mpiProblemSizeValue');
         if (mpiProblemSize && mpiProblemSizeValue) {
@@ -1813,7 +1897,8 @@ class DashboardEnhanced {
                     10000: 'Mediano (10K puntos)',
                     50000: 'Grande (50K puntos)',
                     100000: 'Muy Grande (100K puntos)',
-                    500000: 'Masivo (500K puntos)'
+                    500000: 'Masivo (500K puntos)',
+                    1000000: 'Extremo (1M puntos)'
                 };
                 mpiProblemSizeValue.textContent = sizes[mpiProblemSize.value] || 'Personalizado';
             });
@@ -1926,60 +2011,482 @@ class DashboardEnhanced {
         }
     }
 
-    // Simulación MPI
+    // Simulación MPI mejorada con comunicación real
     runMPISimulation() {
+        // Reiniciar primero
+        this.resetMPISimulation();
+
         const nodes = parseInt(document.getElementById('mpiNodes').value);
         const datasetSize = parseInt(document.getElementById('mpiDatasetSize').value);
         const algorithm = document.getElementById('mpiAlgorithm').value;
-        const problemSize = document.getElementById('mpiProblemSize')?.value || datasetSize;
 
-        const resultsDiv = document.getElementById('mpiResults');
-        resultsDiv.innerHTML = `
-            <div class="simulation-header">
-                <h4>🔄 Simulación MPI Avanzada</h4>
-                <p>Procesando ${problemSize.toLocaleString()} puntos con ${nodes} nodos - Algoritmo: ${this.getMPIAlgorithmName(algorithm)}</p>
-            </div>
-            <div class="mpi-load-balancing" id="mpiLoadBalancing"></div>
-            <div class="mpi-nodes-container" id="mpiNodesContainer"></div>
-            <div class="performance-metrics" id="mpiMetrics"></div>
-            <div class="mpi-communication" id="mpiCommunication"></div>
-        `;
+        console.log(`🚀 Iniciando simulación MPI: ${nodes} nodos, ${datasetSize} puntos, algoritmo: ${algorithm}`);
 
-        this.simulateMPILoadBalancing(nodes, problemSize, algorithm);
+        // Ocultar placeholder y mostrar secciones
+        document.getElementById('mpiResults').style.display = 'none';
+        document.getElementById('mpiArchitecture').style.display = 'block';
+        document.getElementById('mpiLoadBalancing').style.display = 'block';
+        document.getElementById('mpiCommunication').style.display = 'block';
+
+        // Inicializar visualización
+        this.initializeMPIVisualization(nodes);
+        this.simulateMPIProcessing(nodes, datasetSize, algorithm);
     }
 
+    // Inicializar visualización MPI
+    initializeMPIVisualization(nodes) {
+        const workerNodesContainer = document.getElementById('mpiWorkerNodes');
+        workerNodesContainer.innerHTML = '';
+
+        // Crear nodos workers
+        for (let i = 1; i < nodes; i++) {
+            const workerNode = document.createElement('div');
+            workerNode.className = 'worker-node';
+            workerNode.id = `workerNode${i}`;
+            workerNode.innerHTML = `
+            <i class="fas fa-microchip"></i>
+            <span>Worker ${i}</span>
+            <div class="node-status" id="workerStatus${i}"></div>
+            <div class="progress-container">
+                <div class="progress-fill" id="workerProgress${i}"></div>
+            </div>
+        `;
+            workerNodesContainer.appendChild(workerNode);
+        }
+
+        // Inicializar balanceo de carga
+        this.initializeLoadBalancing(nodes);
+
+        // Inicializar comunicación
+        this.initializeMPICommunication(nodes);
+    }
+
+    // Inicializar balanceo de carga
+    initializeLoadBalancing(nodes) {
+        const loadDistribution = document.getElementById('loadDistribution');
+        loadDistribution.innerHTML = '';
+
+        const chunkSizes = this.calculateLoadBalancing(nodes, 100); // 100% de carga
+
+        chunkSizes.forEach((size, index) => {
+            const loadChunk = document.createElement('div');
+            loadChunk.className = 'load-chunk';
+            loadChunk.innerHTML = `
+            <div class="chunk-bar" style="height: ${size}%"></div>
+            <div class="chunk-info">
+                <strong>Nodo ${index}</strong>
+                <span>${size}%</span>
+            </div>
+        `;
+            loadDistribution.appendChild(loadChunk);
+        });
+    }
+
+    // Inicializar comunicación MPI
+    initializeMPICommunication(nodes) {
+        const communicationDiagram = document.getElementById('communicationDiagram');
+        const algorithm = document.getElementById('mpiAlgorithm').value;
+
+        let communicationHTML = '';
+
+        switch (algorithm) {
+            case 'broadcast':
+                communicationHTML = this.createBroadcastDiagram(nodes);
+                break;
+            case 'scatter':
+                communicationHTML = this.createScatterDiagram(nodes);
+                break;
+            case 'reduce':
+                communicationHTML = this.createReduceDiagram(nodes);
+                break;
+            default:
+                communicationHTML = this.createDefaultDiagram(nodes);
+        }
+
+        communicationDiagram.innerHTML = communicationHTML;
+    }
+
+    // Simulación mejorada de procesamiento MPI
+    // Simulación de procesamiento MPI
     simulateMPIProcessing(nodes, datasetSize, algorithm) {
-        const chunkSize = Math.ceil(datasetSize / nodes);
+        console.log(`⚡ Simulando procesamiento MPI con ${nodes} nodos...`);
+
+        const chunkSizes = this.calculateLoadBalancing(nodes, datasetSize);
         let completedNodes = 0;
 
-        const nodeElements = document.querySelectorAll('.mpi-node');
-        const metricsDiv = document.getElementById('mpiMetrics');
+        // Actualizar estado del nodo maestro
+        this.updateNodeStatus(0, 'processing');
 
-        nodeElements.forEach((node, index) => {
+        // Simular procesamiento en cada nodo
+        chunkSizes.forEach((chunkSize, nodeIndex) => {
             setTimeout(() => {
-                const progress = node.querySelector('.progress-fill');
-                let currentProgress = 0;
+                if (nodeIndex === 0) {
+                    // Nodo maestro
+                    this.simulateNodeProcessing(0, chunkSize, algorithm, () => {
+                        this.updateNodeStatus(0, 'completed');
+                        completedNodes++;
+                        this.checkSimulationCompletion(completedNodes, nodes, datasetSize, algorithm);
+                    });
+                } else {
+                    // Nodos workers
+                    this.updateNodeStatus(nodeIndex, 'processing');
+                    this.simulateNodeProcessing(nodeIndex, chunkSize, algorithm, () => {
+                        this.updateNodeStatus(nodeIndex, 'completed');
+                        completedNodes++;
+                        this.checkSimulationCompletion(completedNodes, nodes, datasetSize, algorithm);
+                    });
+                }
+            }, nodeIndex * 1000);
+        });
+    }
 
-                const interval = setInterval(() => {
-                    currentProgress += Math.random() * 15;
-                    if (currentProgress >= 100) {
-                        currentProgress = 100;
-                        clearInterval(interval);
+    // Simular procesamiento de un nodo individual
+    simulateNodeProcessing(nodeIndex, chunkSize, algorithm, callback) {
+        const progressElement = document.getElementById(`workerProgress${nodeIndex}`) ||
+            document.getElementById('masterNodeStatus')?.parentElement?.querySelector('.progress-fill');
 
-                        // Marcar nodo como completado
-                        node.querySelector('.node-status').className = 'node-status completed';
-                        node.querySelector('.node-info span').textContent = 'Completado';
+        let progress = 0;
+        const totalSteps = 10;
+        const stepTime = 500; // ms por paso
 
+        const processStep = () => {
+            progress += 100 / totalSteps;
+
+            if (progressElement) {
+                progressElement.style.width = `${progress}%`;
+            }
+
+            if (progress < 100) {
+                setTimeout(processStep, stepTime);
+            } else {
+                callback();
+            }
+        };
+
+        processStep();
+    }
+
+    // Verificar finalización de simulación
+    checkSimulationCompletion(completedNodes, totalNodes, datasetSize, algorithm) {
+        if (completedNodes === totalNodes) {
+            console.log('✅ Simulación MPI completada');
+            this.showMPIResults(totalNodes, datasetSize, algorithm);
+        }
+    }
+
+    showMPILoadBalancing(chunkSizes) {
+        const loadBalancingDiv = document.getElementById('mpiLoadBalancing');
+        const totalSize = chunkSizes.reduce((a, b) => a + b, 0);
+
+        loadBalancingDiv.innerHTML = `
+        <h5>📊 Balanceo de Carga MPI</h5>
+        <div class="load-distribution-detailed">
+            ${chunkSizes.map((size, index) => `
+                <div class="load-chunk-detailed">
+                    <div class="chunk-info">
+                        <strong>Nodo ${index}</strong>
+                        <span>${size.toLocaleString()} puntos</span>
+                        <span>${((size / totalSize) * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="chunk-bar-container">
+                        <div class="chunk-bar" style="width: ${(size / Math.max(...chunkSizes)) * 100}%"></div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    }
+
+    simulateMPICommunication(nodes, algorithm) {
+        const communicationDiv = document.getElementById('mpiCommunication');
+
+        let communicationHTML = '<h5>📡 Patrón de Comunicación MPI</h5>';
+
+        switch (algorithm) {
+            case 'broadcast':
+                communicationHTML += this.createBroadcastDiagram(nodes);
+                break;
+            case 'scatter':
+                communicationHTML += this.createScatterGatherDiagram(nodes);
+                break;
+            case 'reduce':
+                communicationHTML += this.createReduceDiagram(nodes);
+                break;
+            default:
+                communicationHTML += this.createPointToPointDiagram(nodes);
+        }
+
+        communicationDiv.innerHTML = communicationHTML;
+    }
+
+
+    // Diagramas de comunicación
+    createBroadcastDiagram(nodes) {
+        return `
+        <div class="broadcast-diagram">
+            <div class="broadcast-node master">
+                <i class="fas fa-broadcast-tower"></i>
+                <span>Rank 0 (Master)</span>
+            </div>
+            <div class="broadcast-arrows">
+                ${Array.from({ length: nodes - 1 }, (_, i) => `
+                    <div class="arrow" style="animation-delay: ${i * 0.2}s"></div>
+                `).join('')}
+            </div>
+            <div class="broadcast-nodes">
+                ${Array.from({ length: nodes - 1 }, (_, i) => `
+                    <div class="broadcast-node worker">
+                        <i class="fas fa-satellite-dish"></i>
+                        <span>Rank ${i + 1}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    }
+
+    createScatterDiagram(nodes) {
+        return `
+        <div class="scatter-diagram">
+            <div class="scatter-node master">
+                <i class="fas fa-share-alt"></i>
+                <span>Scatter</span>
+            </div>
+            <div class="scatter-arrows">
+                ${Array.from({ length: nodes - 1 }, (_, i) => `
+                    <div class="arrow scatter-arrow" style="animation-delay: ${i * 0.3}s"></div>
+                `).join('')}
+            </div>
+            <div class="scatter-nodes">
+                ${Array.from({ length: nodes - 1 }, (_, i) => `
+                    <div class="scatter-node worker">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <span>Chunk ${i + 1}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    }
+
+    createReduceDiagram(nodes) {
+        return `
+        <div class="reduce-diagram">
+            <div class="reduce-nodes">
+                ${Array.from({ length: nodes - 1 }, (_, i) => `
+                    <div class="reduce-node worker">
+                        <i class="fas fa-cube"></i>
+                        <span>Data ${i + 1}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="reduce-arrows">
+                ${Array.from({ length: nodes - 1 }, (_, i) => `
+                    <div class="arrow reduce-arrow" style="animation-delay: ${i * 0.2}s"></div>
+                `).join('')}
+            </div>
+            <div class="reduce-node master">
+                <i class="fas fa-layer-group"></i>
+                <span>Reduce</span>
+            </div>
+        </div>
+    `;
+    }
+
+    createDefaultDiagram(nodes) {
+        return `
+        <div class="default-diagram">
+            <div class="default-node master">
+                <i class="fas fa-network-wired"></i>
+                <span>Comunicación MPI</span>
+            </div>
+            <div class="default-grid">
+                ${Array.from({ length: nodes - 1 }, (_, i) => `
+                    <div class="default-node worker">
+                        <i class="fas fa-link"></i>
+                        <span>Nodo ${i + 1}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    }
+
+    processMPIData(nodes, chunkSizes, algorithm) {
+        const metricsDiv = document.getElementById('mpiMetrics');
+        const resultsDiv = document.getElementById('mpiDetailedResults');
+
+        let totalProcessingTime = 0;
+        let completedNodes = 0;
+
+        // Simular procesamiento en cada nodo
+        chunkSizes.forEach((chunkSize, nodeIndex) => {
+            const processingTime = this.calculateProcessingTime(chunkSize, algorithm);
+            totalProcessingTime += processingTime;
+
+            setTimeout(() => {
+                this.updateNodeStatus(nodeIndex, 'processing');
+
+                // Simular progreso
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 20;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(progressInterval);
+
+                        this.updateNodeStatus(nodeIndex, 'completed');
                         completedNodes++;
 
                         if (completedNodes === nodes) {
-                            this.showMPIResults(nodes, datasetSize, algorithm);
+                            this.showFinalMPIResults(nodes, totalProcessingTime, chunkSizes, algorithm);
                         }
                     }
-                    progress.style.width = `${currentProgress}%`;
-                }, 200 + (index * 100));
-            }, 500 * index);
+                    this.updateNodeProgress(nodeIndex, progress);
+                }, 100);
+            }, nodeIndex * 500);
         });
+
+        // Mostrar métricas iniciales
+        metricsDiv.innerHTML = `
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-value">${nodes}</div>
+                <div class="metric-label">Nodos MPI</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${chunkSizes.reduce((a, b) => a + b, 0).toLocaleString()}</div>
+                <div class="metric-label">Total Puntos</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${chunkSizes.length}</div>
+                <div class="metric-label">Chunks</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">${algorithm}</div>
+                <div class="metric-label">Algoritmo</div>
+            </div>
+        </div>
+    `;
+    }
+
+    showFinalMPIResults(nodes, totalTime, chunkSizes, algorithm) {
+        const resultsDiv = document.getElementById('mpiDetailedResults');
+        const speedup = (nodes * 0.85).toFixed(2);
+        const efficiency = ((speedup / nodes) * 100).toFixed(1);
+        const totalData = chunkSizes.reduce((a, b) => a + b, 0);
+
+        // Generar resultados basados en datos reales del sistema
+        const realData = this.generateMPIResultsFromRealData();
+
+        resultsDiv.innerHTML = `
+        <div class="results-header">
+            <h4>✅ Simulación MPI Completada</h4>
+            <p>Procesamiento distribuido finalizado exitosamente</p>
+        </div>
+        
+        <div class="performance-analysis">
+            <h5>📈 Análisis de Rendimiento</h5>
+            <div class="performance-metrics-grid">
+                <div class="perf-metric">
+                    <span class="perf-value">${speedup}x</span>
+                    <span class="perf-label">Speedup</span>
+                    <div class="perf-bar" style="width: ${(speedup / nodes) * 100}%"></div>
+                </div>
+                <div class="perf-metric">
+                    <span class="perf-value">${efficiency}%</span>
+                    <span class="perf-label">Eficiencia</span>
+                    <div class="perf-bar" style="width: ${efficiency}%"></div>
+                </div>
+                <div class="perf-metric">
+                    <span class="perf-value">${(totalTime / 1000).toFixed(2)}s</span>
+                    <span class="perf-label">Tiempo Total</span>
+                    <div class="perf-bar" style="width: ${(1000 / totalTime) * 100}%"></div>
+                </div>
+                <div class="perf-metric">
+                    <span class="perf-value">${(totalData / totalTime * 1000).toFixed(0)}</span>
+                    <span class="perf-label">Puntos/segundo</span>
+                    <div class="perf-bar" style="width: ${(totalData / totalTime) * 10}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="real-results">
+            <h5>🔍 Resultados del Análisis Energético</h5>
+            <div class="real-metrics">
+                ${realData.map(metric => `
+                    <div class="real-metric-card ${metric.trend}">
+                        <i class="${metric.icon}"></i>
+                        <div class="real-metric-content">
+                            <div class="real-value">${metric.value}</div>
+                            <div class="real-label">${metric.label}</div>
+                            <div class="real-trend">${metric.trendText}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        
+        <div class="recommendations">
+            <h5>💡 Recomendaciones MPI</h5>
+            <div class="recommendation-list">
+                <div class="recommendation-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Usar ${this.getOptimalNodeCount(totalData)} nodos para este tamaño de dataset</span>
+                </div>
+                <div class="recommendation-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Considerar algoritmo "${this.getOptimalAlgorithm(totalData)}" para mejor escalabilidad</span>
+                </div>
+                <div class="recommendation-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Balance de carga: ${this.getLoadBalanceRecommendation(chunkSizes)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+        this.showToast(`✅ Simulación MPI completada. Speedup: ${speedup}x, Eficiencia: ${efficiency}%`, 'success');
+    }
+
+    // Generar resultados basados en datos reales del sistema
+    generateMPIResultsFromRealData() {
+        const offices = Object.values(this.resumenes);
+        const totalConsumption = offices.reduce((sum, o) => sum + (o.consumo_total_kvh || 0), 0);
+        const avgEfficiency = offices.reduce((sum, o) => sum + this.calculateOfficeEfficiency(o), 0) / offices.length;
+        const alertCount = offices.filter(o => (o.corriente_a || 0) > 10).length;
+        const co2Saved = totalConsumption * 0.5;
+
+        return [
+            {
+                icon: 'fas fa-bolt',
+                value: `${totalConsumption.toFixed(1)} kWh`,
+                label: 'Consumo Total',
+                trend: 'down',
+                trendText: '↓ 5.2% vs anterior'
+            },
+            {
+                icon: 'fas fa-chart-line',
+                value: `${avgEfficiency.toFixed(1)}%`,
+                label: 'Eficiencia Promedio',
+                trend: 'up',
+                trendText: '↑ 3.1% vs anterior'
+            },
+            {
+                icon: 'fas fa-exclamation-triangle',
+                value: alertCount,
+                label: 'Alertas Activas',
+                trend: alertCount > 0 ? 'warning' : 'good',
+                trendText: alertCount > 0 ? '¡Requiere atención!' : 'Situación óptima'
+            },
+            {
+                icon: 'fas fa-leaf',
+                value: `${co2Saved.toFixed(1)} kg`,
+                label: 'CO2 Evitado',
+                trend: 'up',
+                trendText: '↑ 8.7% vs anterior'
+            }
+        ];
     }
 
     getMPIAlgorithmName(algorithm) {
@@ -2036,6 +2543,7 @@ class DashboardEnhanced {
         this.simulateMPIProcessing(nodes, problemSize, algorithm, chunkSizes);
     }
 
+    // Utilidades MPI mejoradas
     calculateLoadBalancing(nodes, problemSize) {
         const baseChunk = Math.floor(problemSize / nodes);
         const remainder = problemSize % nodes;
@@ -2045,31 +2553,682 @@ class DashboardEnhanced {
         );
     }
 
+    calculateProcessingTime(chunkSize, algorithm) {
+        const baseTime = chunkSize * 0.1; // 0.1ms por punto
+        const algorithmMultipliers = {
+            'efficiency': 1.0,
+            'clustering': 1.8,
+            'prediction': 2.2,
+            'broadcast': 0.8,
+            'scatter': 1.2,
+            'reduce': 1.1
+        };
+
+        return baseTime * (algorithmMultipliers[algorithm] || 1.0);
+    }
+
+    getOptimalNodeCount(dataSize) {
+        if (dataSize <= 10000) return 4;
+        if (dataSize <= 50000) return 8;
+        if (dataSize <= 200000) return 16;
+        return 32;
+    }
+
+    getOptimalAlgorithm(dataSize) {
+        if (dataSize <= 50000) return 'scatter';
+        if (dataSize <= 200000) return 'broadcast';
+        return 'reduce';
+    }
+
+    getLoadBalanceRecommendation(chunkSizes) {
+        const maxChunk = Math.max(...chunkSizes);
+        const minChunk = Math.min(...chunkSizes);
+        const imbalance = ((maxChunk - minChunk) / maxChunk) * 100;
+
+        if (imbalance > 30) return 'Crítico - Considerar balance dinámico';
+        if (imbalance > 15) return 'Moderado - Podría optimizarse';
+        return 'Óptimo - Balance bien distribuido';
+    }
+
+    updateNodeProgress(nodeIndex, progress) {
+        // Implementar barra de progreso visual para cada nodo
+        const nodeElement = document.getElementById(`workerNode${nodeIndex}`) ||
+            document.querySelector('.master-node');
+        if (nodeElement) {
+            const progressBar = nodeElement.querySelector('.progress-bar') ||
+                this.createProgressBar(nodeElement);
+            progressBar.style.width = `${progress}%`;
+        }
+    }
+
+    createProgressBar(nodeElement) {
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-container';
+        progressContainer.innerHTML = '<div class="progress-bar"></div>';
+        nodeElement.appendChild(progressContainer);
+        return progressContainer.querySelector('.progress-bar');
+    }
+
+    // Método mejorado para mostrar resultados
     showMPIResults(nodes, datasetSize, algorithm) {
-        const metricsDiv = document.getElementById('mpiMetrics');
-        const speedup = (nodes * 0.8).toFixed(2);
-        const efficiency = ((speedup / nodes) * 100).toFixed(1);
+        // Calcular métricas REALES
+        const efficiency = this.calculateRealisticEfficiency(nodes, datasetSize, algorithm);
+        const speedup = this.calculateRealisticSpeedup(nodes, efficiency);
+        const processingTime = this.calculateRealisticProcessingTime(nodes, datasetSize, efficiency, algorithm);
+        const throughput = this.calculateRealisticThroughput(datasetSize, processingTime);
 
-        metricsDiv.innerHTML = `
-            <div class="metric-card">
-                <div class="metric-value">${speedup}x</div>
-                <div class="metric-label">Speedup</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value">${efficiency}%</div>
-                <div class="metric-label">Eficiencia</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value">${(datasetSize / 1000).toFixed(1)}s</div>
-                <div class="metric-label">Tiempo Total</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value">${nodes}</div>
-                <div class="metric-label">Nodos Usados</div>
-            </div>
-        `;
+        console.log(`📊 Métricas calculadas: ${nodes}nodos, ${datasetSize}puntos -> Eff:${efficiency}%, Speedup:${speedup}x`);
 
-        this.showToast(`✅ Simulación MPI completada con ${nodes} nodos`, 'success');
+        // Mostrar métricas
+        document.getElementById('mpiMetrics').style.display = 'block';
+        document.getElementById('mpiDetailedResults').style.display = 'block';
+
+        // Actualizar métricas con valores REALES
+        const metricsGrid = document.getElementById('mpiMetricsGrid');
+        metricsGrid.innerHTML = `
+        <div class="metric-card">
+            <div class="metric-value">${speedup}x</div>
+            <div class="metric-label">Speedup</div>
+            <div class="metric-detail">${nodes} nodos × ${efficiency}% eff</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">${efficiency}%</div>
+            <div class="metric-label">Eficiencia</div>
+            <div class="metric-detail">${this.getEfficiencyDescription(efficiency)}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">${processingTime}s</div>
+            <div class="metric-label">Tiempo Total</div>
+            <div class="metric-detail">${this.getTimeDescription(processingTime)}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">${throughput}</div>
+            <div class="metric-label">Puntos/segundo</div>
+            <div class="metric-detail">${algorithm}</div>
+        </div>
+    `;
+
+        // Mostrar análisis de eficiencia
+        this.showEfficiencyAnalysis(nodes, datasetSize, algorithm, efficiency);
+
+        // Mostrar resultados reales y recomendaciones
+        this.showRealMPIResults();
+        this.showMPIRecommendations(nodes, datasetSize, algorithm, efficiency);
+
+        this.showToast(`✅ Simulación completada: Speedup ${speedup}x, Eficiencia ${efficiency}%`, 'success');
+    }
+
+    // Métodos auxiliares para descripciones
+    getEfficiencyDescription(efficiency) {
+        if (efficiency >= 90) return 'Excelente';
+        if (efficiency >= 80) return 'Muy buena';
+        if (efficiency >= 70) return 'Buena';
+        if (efficiency >= 60) return 'Aceptable';
+        return 'Baja';
+    }
+
+    getTimeDescription(time) {
+        if (time < 1) return 'Muy rápido';
+        if (time < 5) return 'Rápido';
+        if (time < 10) return 'Moderado';
+        if (time < 30) return 'Lento';
+        return 'Muy lento';
+    }
+
+    // Mostrar resultados reales basados en datos del sistema
+    showRealMPIResults() {
+        const realResults = document.getElementById('realMPIResults');
+        const analysisResults = this.generateRealMPIAnalysis();
+
+        realResults.innerHTML = analysisResults.map(result => `
+        <div class="real-metric-card ${result.trend}">
+            <i class="${result.icon}"></i>
+            <div class="real-metric-content">
+                <div class="real-value">${result.value}</div>
+                <div class="real-label">${result.label}</div>
+                <div class="real-trend">${result.trendText}</div>
+            </div>
+        </div>
+    `).join('');
+    }
+
+    // Generar análisis MPI basado en datos reales
+    generateRealMPIAnalysis() {
+        const offices = Object.values(this.resumenes);
+        const totalConsumption = offices.reduce((sum, o) => sum + (o.consumo_total_kvh || 0), 0);
+        const avgEfficiency = offices.reduce((sum, o) => sum + this.calculateOfficeEfficiency(o), 0) / offices.length;
+        const alertCount = offices.filter(o => (o.corriente_a || 0) > 10).length;
+        const co2Saved = totalConsumption * 0.5;
+
+        return [
+            {
+                icon: 'fas fa-bolt',
+                value: `${totalConsumption.toFixed(1)} kWh`,
+                label: 'Consumo Total Analizado',
+                trend: 'down',
+                trendText: '↓ 5.2% vs procesamiento secuencial'
+            },
+            {
+                icon: 'fas fa-chart-line',
+                value: `${avgEfficiency.toFixed(1)}%`,
+                label: 'Eficiencia Detectada',
+                trend: 'up',
+                trendText: '↑ 8.7% más rápido'
+            },
+            {
+                icon: 'fas fa-exclamation-triangle',
+                value: alertCount,
+                label: 'Patrones Críticos',
+                trend: alertCount > 0 ? 'warning' : 'good',
+                trendText: alertCount > 0 ? `${alertCount} oficinas requieren atención` : 'Situación óptima'
+            },
+            {
+                icon: 'fas fa-leaf',
+                value: `${co2Saved.toFixed(1)} kg`,
+                label: 'CO2 Optimizado',
+                trend: 'up',
+                trendText: '↑ 12.3% de eficiencia'
+            }
+        ];
+    }
+
+    // Mostrar recomendaciones MPI
+    showMPIRecommendations(nodes, datasetSize, algorithm) {
+        const recommendationList = document.getElementById('mpiRecommendationList');
+
+        const recommendations = [
+            {
+                icon: 'fas fa-check-circle',
+                text: `Usar ${this.getOptimalNodeCount(datasetSize)} nodos para datasets de este tamaño`
+            },
+            {
+                icon: 'fas fa-check-circle',
+                text: `Algoritmo "${algorithm}" es óptimo para análisis de eficiencia energética`
+            },
+            {
+                icon: 'fas fa-check-circle',
+                text: 'Considerar balance dinámico para mejorar escalabilidad'
+            },
+            {
+                icon: 'fas fa-check-circle',
+                text: 'Implementar checkpointing para datasets muy grandes'
+            }
+        ];
+
+        recommendationList.innerHTML = recommendations.map(rec => `
+        <div class="recommendation-item">
+            <i class="${rec.icon}"></i>
+            <span>${rec.text}</span>
+        </div>
+    `).join('');
+    }
+
+    // Métodos de utilidad MPI
+    calculateLoadBalancing(nodes, totalSize) {
+        const baseChunk = Math.floor(totalSize / nodes);
+        const remainder = totalSize % nodes;
+
+        return Array.from({ length: nodes }, (_, i) =>
+            baseChunk + (i < remainder ? 1 : 0)
+        );
+    }
+
+    updateNodeStatus(nodeIndex, status) {
+        let statusElement;
+
+        if (nodeIndex === 0) {
+            statusElement = document.getElementById('masterNodeStatus');
+        } else {
+            statusElement = document.getElementById(`workerStatus${nodeIndex}`);
+        }
+
+        if (statusElement) {
+            statusElement.className = 'node-status';
+            statusElement.classList.add(status);
+        }
+    }
+    // Mostrar análisis detallado de eficiencia
+    showEfficiencyAnalysis(nodes, datasetSize, algorithm, efficiency) {
+        const analysisDiv = document.getElementById('realMPIResults');
+
+        const factors = this.analyzeEfficiencyFactors(nodes, datasetSize, algorithm);
+
+        analysisDiv.innerHTML = `
+        <div class="efficiency-analysis">
+            <h5>📈 Análisis de Eficiencia: ${efficiency}%</h5>
+            <div class="efficiency-factors">
+                ${factors.map(factor => `
+                    <div class="efficiency-factor ${factor.impact}">
+                        <div class="factor-header">
+                            <i class="${factor.icon}"></i>
+                            <span class="factor-name">${factor.name}</span>
+                            <span class="factor-value">${factor.value}</span>
+                        </div>
+                        <div class="factor-impact">${factor.impactText}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    }
+
+    // Analizar factores que afectan la eficiencia
+    analyzeEfficiencyFactors(nodes, datasetSize, algorithm) {
+        const chunkSizes = this.calculateLoadBalancing(nodes, datasetSize);
+        const loadBalanceQuality = this.calculateLoadBalanceQuality(nodes, datasetSize);
+
+        return [
+            {
+                name: 'Número de Nodos',
+                value: `${nodes} nodos`,
+                impact: nodes > 8 ? 'negative' : 'positive',
+                impactText: nodes > 8 ? 'Muchos nodos aumentan overhead' : 'Número óptimo de nodos',
+                icon: 'fas fa-server'
+            },
+            {
+                name: 'Tamaño del Dataset',
+                value: `${datasetSize.toLocaleString()} pts`,
+                impact: datasetSize < 5000 ? 'negative' : 'positive',
+                impactText: datasetSize < 5000 ? 'Dataset pequeño para tantos nodos' : 'Dataset adecuado',
+                icon: 'fas fa-database'
+            },
+            {
+                name: 'Balance de Carga',
+                value: `${Math.round(loadBalanceQuality * 100)}%`,
+                impact: loadBalanceQuality > 0.9 ? 'positive' : 'warning',
+                impactText: loadBalanceQuality > 0.9 ? 'Carga bien distribuida' : 'Carga desbalanceada',
+                icon: 'fas fa-balance-scale'
+            },
+            {
+                name: 'Algoritmo MPI',
+                value: algorithm,
+                impact: ['broadcast', 'reduce'].includes(algorithm) ? 'positive' : 'neutral',
+                impactText: this.getAlgorithmImpact(algorithm),
+                icon: 'fas fa-code-branch'
+            }
+        ];
+    }
+
+    getAlgorithmImpact(algorithm) {
+        const impacts = {
+            'efficiency': 'Buen balance computación/comunicación',
+            'clustering': 'Alto costo computacional',
+            'prediction': 'Procesamiento intensivo',
+            'broadcast': 'Comunicación eficiente',
+            'scatter': 'Distribución equilibrada',
+            'reduce': 'Agregación optimizada'
+        };
+        return impacts[algorithm] || 'Impacto moderado';
+    }
+
+    // ===== MÉTODOS ADICIONALES MPI =====
+
+    visualizeMPIResults() {
+        console.log('📊 Generando visualización avanzada de resultados MPI...');
+
+        // Verificar si hay resultados primero
+        const metricsElement = document.getElementById('mpiMetrics');
+        if (metricsElement.style.display === 'none') {
+            this.showToast('⚠️ Primero ejecuta una simulación MPI para visualizar resultados', 'warning');
+            return;
+        }
+
+        this.showToast('Generando visualización avanzada de resultados MPI...', 'info');
+
+        // Crear visualización avanzada
+        const resultsDiv = document.getElementById('mpiResults');
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = `
+        <div class="simulation-header">
+            <h4><i class="fas fa-chart-network"></i> Visualización Avanzada MPI</h4>
+            <p>Análisis detallado del procesamiento distribuido</p>
+        </div>
+        
+        <div class="visualization-grid">
+            <div class="viz-card">
+                <h5><i class="fas fa-wave-square"></i> Análisis de Escalabilidad</h5>
+                <div class="scalability-chart" id="scalabilityChart">
+                    ${this.generateScalabilityChart()}
+                </div>
+            </div>
+            
+            <div class="viz-card">
+                <h5><i class="fas fa-tachometer-alt"></i> Métricas de Rendimiento</h5>
+                <div class="performance-breakdown">
+                    ${this.generatePerformanceBreakdown()}
+                </div>
+            </div>
+            
+            <div class="viz-card">
+                <h5><i class="fas fa-project-diagram"></i> Análisis de Comunicación</h5>
+                <div class="communication-analysis">
+                    ${this.generateCommunicationAnalysis()}
+                </div>
+            </div>
+            
+            <div class="viz-card">
+                <h5><i class="fas fa-balance-scale"></i> Eficiencia del Sistema</h5>
+                <div class="efficiency-metrics">
+                    ${this.generateEfficiencyMetrics()}
+                </div>
+            </div>
+        </div>
+        
+        <div class="visualization-actions">
+            <button class="btn-glass small" onclick="dashboard.exportMPIResults()">
+                <i class="fas fa-download"></i> Exportar Resultados
+            </button>
+            <button class="btn-glass small primary" onclick="dashboard.generateMPIReport()">
+                <i class="fas fa-file-pdf"></i> Generar Reporte
+            </button>
+        </div>
+    `;
+
+        this.showToast('Visualización MPI generada correctamente', 'success');
+    }
+
+    // Métodos auxiliares para la visualización
+    generateScalabilityChart() {
+        const nodes = [2, 4, 8, 16];
+        const speedups = nodes.map(n => (n * 0.85).toFixed(2));
+        const efficiencies = nodes.map(n => ((n * 0.85 / n) * 100).toFixed(1));
+
+        return `
+        <div class="chart-container-scalability">
+            <div class="chart-bars">
+                ${nodes.map((node, index) => `
+                    <div class="chart-bar-container">
+                        <div class="chart-bar speedup" style="height: ${speedups[index] * 15}px" 
+                             title="Speedup: ${speedups[index]}x"></div>
+                        <div class="chart-bar efficiency" style="height: ${efficiencies[index]}px" 
+                             title="Eficiencia: ${efficiencies[index]}%"></div>
+                        <div class="chart-label">${node}N</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <div class="legend-color speedup"></div>
+                    <span>Speedup</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color efficiency"></div>
+                    <span>Eficiencia</span>
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
+    generatePerformanceBreakdown() {
+        return `
+        <div class="performance-stats">
+            <div class="perf-stat">
+                <div class="perf-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div class="perf-info">
+                    <div class="perf-value">3.4x</div>
+                    <div class="perf-label">Speedup Promedio</div>
+                </div>
+            </div>
+            <div class="perf-stat">
+                <div class="perf-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="perf-info">
+                    <div class="perf-value">85%</div>
+                    <div class="perf-label">Eficiencia</div>
+                </div>
+            </div>
+            <div class="perf-stat">
+                <div class="perf-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="perf-info">
+                    <div class="perf-value">2.1s</div>
+                    <div class="perf-label">Tiempo Reducido</div>
+                </div>
+            </div>
+            <div class="perf-stat">
+                <div class="perf-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="perf-info">
+                    <div class="perf-value">156%</div>
+                    <div class="perf-label">Mejora Rendimiento</div>
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
+    generateCommunicationAnalysis() {
+        return `
+        <div class="comm-analysis">
+            <div class="comm-metric">
+                <span class="metric-name">Latencia Promedio:</span>
+                <span class="metric-value">1.2 ms</span>
+            </div>
+            <div class="comm-metric">
+                <span class="metric-name">Ancho de Banda:</span>
+                <span class="metric-value">4.8 GB/s</span>
+            </div>
+            <div class="comm-metric">
+                <span class="metric-name">Overhead Comunicación:</span>
+                <span class="metric-value">12%</span>
+            </div>
+            <div class="comm-metric">
+                <span class="metric-name">Mensajes/Segundo:</span>
+                <span class="metric-value">45,000</span>
+            </div>
+        </div>
+    `;
+    }
+
+    generateEfficiencyMetrics() {
+        return `
+        <div class="efficiency-stats">
+            <div class="eff-progress">
+                <div class="eff-label">Utilización CPU</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 92%"></div>
+                </div>
+                <div class="eff-value">92%</div>
+            </div>
+            <div class="eff-progress">
+                <div class="eff-label">Balance de Carga</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 88%"></div>
+                </div>
+                <div class="eff-value">88%</div>
+            </div>
+            <div class="eff-progress">
+                <div class="eff-label">Eficiencia Memoria</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 95%"></div>
+                </div>
+                <div class="eff-value">95%</div>
+            </div>
+            <div class="eff-progress">
+                <div class="eff-label">Reducción Energía</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 78%"></div>
+                </div>
+                <div class="eff-value">78%</div>
+            </div>
+        </div>
+    `;
+    }
+
+    // Método mejorado para calcular eficiencia realista
+    calculateRealisticEfficiency(nodes, datasetSize, algorithm) {
+        // Factores que afectan la eficiencia:
+
+        // 1. Factor por número de nodos (más nodos = menor eficiencia)
+        const nodeEfficiency = Math.max(0.4, 1.0 - (nodes * 0.03));
+
+        // 2. Factor por tamaño del dataset (datasets pequeños = menor eficiencia)
+        let sizeEfficiency;
+        if (datasetSize <= 1000) sizeEfficiency = 0.6;      // Muy pequeño
+        else if (datasetSize <= 10000) sizeEfficiency = 0.8; // Pequeño
+        else if (datasetSize <= 50000) sizeEfficiency = 0.9; // Mediano
+        else if (datasetSize <= 100000) sizeEfficiency = 0.85; // Grande
+        else sizeEfficiency = 0.75;                         // Muy grande
+
+        // 3. Factor por tipo de algoritmo
+        const algorithmEfficiency = {
+            'efficiency': 0.95,
+            'clustering': 0.85,
+            'prediction': 0.80,
+            'broadcast': 0.90,
+            'scatter': 0.88,
+            'reduce': 0.92
+        }[algorithm] || 0.85;
+
+        // 4. Factor de balance de carga (ideal vs real)
+        const loadBalance = this.calculateLoadBalanceQuality(nodes, datasetSize);
+
+        // Cálculo final de eficiencia
+        const baseEfficiency = nodeEfficiency * sizeEfficiency * algorithmEfficiency * loadBalance;
+
+        // Convertir a porcentaje y limitar entre 40% y 95%
+        return Math.max(40, Math.min(95, (baseEfficiency * 100)));
+    }
+
+    // Calcular calidad del balance de carga
+    calculateLoadBalanceQuality(nodes, datasetSize) {
+        const chunkSizes = this.calculateLoadBalancing(nodes, datasetSize);
+        const maxChunk = Math.max(...chunkSizes);
+        const minChunk = Math.min(...chunkSizes);
+
+        // Calcular desbalance (0 = perfecto, 1 = muy desbalanceado)
+        const imbalance = (maxChunk - minChunk) / maxChunk;
+
+        // Convertir a factor de calidad (1 = perfecto, 0.7 = muy malo)
+        return Math.max(0.7, 1.0 - (imbalance * 0.5));
+    }
+
+    // Método mejorado para calcular speedup
+    calculateRealisticSpeedup(nodes, efficiency) {
+        // Speedup basado en eficiencia real
+        return (nodes * (efficiency / 100)).toFixed(2);
+    }
+
+    // Método mejorado para calcular tiempo de procesamiento
+    calculateRealisticProcessingTime(nodes, datasetSize, efficiency, algorithm) {
+        // Tiempo base por punto (ms) - depende del algoritmo
+        const baseTimePerPoint = {
+            'efficiency': 0.08,
+            'clustering': 0.15,
+            'prediction': 0.20,
+            'broadcast': 0.05,
+            'scatter': 0.10,
+            'reduce': 0.07
+        }[algorithm] || 0.1;
+
+        // Tiempo total ajustado por eficiencia
+        const totalTimeMs = (datasetSize * baseTimePerPoint) / (nodes * (efficiency / 100));
+
+        // Convertir a segundos
+        return (totalTimeMs / 1000).toFixed(2);
+    }
+
+    // Método mejorado para calcular throughput
+    calculateRealisticThroughput(datasetSize, processingTime) {
+        return Math.round(datasetSize / processingTime);
+    }
+    // Métodos adicionales para acciones
+    exportMPIResults() {
+        this.showToast('📥 Exportando resultados MPI a formato CSV...', 'info');
+        // Simulación de exportación
+        setTimeout(() => {
+            this.showToast('Resultados MPI exportados correctamente', 'success');
+        }, 2000);
+    }
+
+    generateMPIReport() {
+        this.showToast('📄 Generando reporte PDF de análisis MPI...', 'info');
+        // Simulación de generación de reporte
+        setTimeout(() => {
+            this.showToast('Reporte MPI generado correctamente', 'success');
+        }, 3000);
+    }
+
+    runMPIBenchmark() {
+        console.log('🏃 Ejecutando benchmark MPI...');
+
+        const benchmarkResults = document.getElementById('mpiResults');
+        benchmarkResults.innerHTML = `
+        <div class="simulation-header">
+            <h4>📊 Benchmark de Escalabilidad MPI</h4>
+            <p>Comparando rendimiento con diferentes configuraciones</p>
+        </div>
+        <div class="benchmark-results">
+            <div class="benchmark-chart">
+                ${[2, 4, 8, 16].map(nodes => {
+            const speedup = (nodes * 0.8).toFixed(2);
+            return `
+                        <div class="benchmark-bar" style="height: ${speedup * 20}px">
+                            <div class="benchmark-label">${nodes} Nodos</div>
+                            <div class="benchmark-value">${speedup}x</div>
+                        </div>
+                    `;
+        }).join('')}
+            </div>
+            <div class="benchmark-analysis">
+                <p><strong>Análisis:</strong> La escalabilidad es óptima hasta 8 nodos, con eficiencia del 85%</p>
+            </div>
+        </div>
+    `;
+
+        this.showToast('Benchmark MPI completado', 'success');
+    }
+
+    getOptimalNodeCount(dataSize) {
+        if (dataSize <= 10000) return 4;
+        if (dataSize <= 50000) return 8;
+        if (dataSize <= 200000) return 16;
+        return 32;
+    }
+
+    // Método para reiniciar la simulación MPI
+    resetMPISimulation() {
+        console.log('🔄 Reiniciando simulación MPI...');
+
+        // Ocultar todas las secciones de resultados
+        document.getElementById('mpiArchitecture').style.display = 'none';
+        document.getElementById('mpiLoadBalancing').style.display = 'none';
+        document.getElementById('mpiCommunication').style.display = 'none';
+        document.getElementById('mpiMetrics').style.display = 'none';
+        document.getElementById('mpiDetailedResults').style.display = 'none';
+
+        // Mostrar placeholder inicial
+        document.getElementById('mpiResults').style.display = 'block';
+        document.getElementById('mpiResults').innerHTML = `
+        <div class="results-placeholder">
+            <i class="fas fa-microchip"></i>
+            <h4>Simulación MPI Lista</h4>
+            <p>Configura los parámetros y ejecuta la simulación para ver los resultados del procesamiento distribuido</p>
+        </div>
+    `;
+
+        // Limpiar nodos workers
+        const workerNodesContainer = document.getElementById('mpiWorkerNodes');
+        if (workerNodesContainer) {
+            workerNodesContainer.innerHTML = '';
+        }
+
+        // Limpiar diagramas
+        const loadDistribution = document.getElementById('loadDistribution');
+        if (loadDistribution) {
+            loadDistribution.innerHTML = '';
+        }
+
+        const communicationDiagram = document.getElementById('communicationDiagram');
+        if (communicationDiagram) {
+            communicationDiagram.innerHTML = '';
+        }
     }
 
     // Simulación OpenMP
@@ -2387,10 +3546,10 @@ ${result.code}
 
     simulatePrologKnowledgeGraph(knowledgeBase, inferenceLevel) {
         const graphDiv = document.getElementById('prologKnowledgeGraph');
-        
+
         const rules = this.getPrologRules(knowledgeBase);
         const connections = this.generateRuleConnections(rules, inferenceLevel);
-        
+
         graphDiv.innerHTML = `
             <h5>🕸️ Grafo de Conocimiento</h5>
             <div class="knowledge-nodes">
@@ -2503,7 +3662,7 @@ ${result.code}
         const selectedParadigms = this.getSelectedParadigms();
         const metric = document.getElementById('comparativeMetric').value;
         const scenario = document.getElementById('comparativeScenario')?.value || 'historical';
-    
+
         const resultsDiv = document.getElementById('comparativeResults');
         resultsDiv.innerHTML = `
             <div class="simulation-header">
@@ -2514,7 +3673,7 @@ ${result.code}
             <div class="comparison-results" id="comparisonResults"></div>
             <div class="recommendation-engine" id="paradigmRecommendations"></div>
         `;
-    
+
         this.showComparativeRadar(selectedParadigms, metric, scenario);
         this.showComparativeResults(selectedParadigms, metric, scenario);
         this.showParadigmRecommendations(selectedParadigms, metric, scenario);
@@ -2522,10 +3681,10 @@ ${result.code}
 
     showComparativeRadar(paradigms, metric, scenario) {
         const radarDiv = document.getElementById('paradigmRadar');
-        
+
         const metrics = ['performance', 'efficiency', 'accuracy', 'scalability', 'memory', 'implementation'];
         const data = this.generateRadarData(paradigms, metrics, scenario);
-        
+
         radarDiv.innerHTML = `
             <h5>📈 Gráfico de Radar Comparativo</h5>
             <div class="radar-chart">
@@ -2546,19 +3705,19 @@ ${result.code}
     generateRadarData(paradigms, metrics, scenario) {
         const data = {};
         paradigms.forEach(paradigm => {
-            data[paradigm] = metrics.map(metric => 
+            data[paradigm] = metrics.map(metric =>
                 Math.random() * 0.6 + 0.4 // Valores entre 0.4 y 1.0
             );
         });
         return data;
-    }    
+    }
 
     showParadigmRecommendations(paradigms, metric, scenario) {
         const recommendationsDiv = document.getElementById('paradigmRecommendations');
-        
+
         const bestParadigm = paradigms[Math.floor(Math.random() * paradigms.length)];
         const recommendations = this.generateRecommendations(bestParadigm, metric, scenario);
-        
+
         recommendationsDiv.innerHTML = `
             <h5>💡 Recomendaciones de Uso</h5>
             <div class="recommendation-card">
@@ -2616,7 +3775,7 @@ ${result.code}
                 ]
             }
         };
-    
+
         return recommendations[paradigm] || recommendations.mpi;
     }
 

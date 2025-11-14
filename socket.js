@@ -1,6 +1,19 @@
 const WebSocket = require('ws');
 const url = require('url');
 const http = require('http');
+const wssOficinas = new WebSocket.Server({ noServer: true });
+// Agregar esta función para guardar configuración en Firebase
+const admin = require('firebase-admin');
+const serviceAccount = require('./credentials/firebase-credentials.json');
+
+// Inicializar Firebase Admin si no está inicializado
+
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: "https://mqtt-mosquitto-3ae51-default-rtdb.firebaseio.com/"
+    });
+}
 
 console.log('🔌 Iniciando servidor WebSocket...');
 
@@ -250,18 +263,199 @@ server.on('upgrade', (request, socket, head) => {
                 wssParams.emit('connection', ws, request);
             });
             break;
+        case '/ws/oficinas':  // Endpoint para oficinas individuales
+            wssOficinas.handleUpgrade(request, socket, head, (ws) => {
+                wssOficinas.emit('connection', ws, request);
+            });
+            break;
         default:
             socket.destroy();
             break;
     }
 });
 
+// Handler para WebSocket de oficinas
+wssOficinas.on('connection', (ws) => {
+    console.log('🔌 Cliente conectado a OFICINAS');
+
+    // Enviar lista inicial de oficinas
+    const oficinasData = {};
+    Object.keys(datosEjemplo.resumenes).forEach(oficina => {
+        oficinasData[oficina] = {
+            nombre: oficina,
+            activa: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        };
+    });
+
+    ws.send(JSON.stringify({
+        tipo: 'oficinas',
+        data: oficinasData
+    }));
+
+    // Escuchar nuevas oficinas desde el dashboard
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.tipo === 'actualizar_oficinas') {
+                console.log('🏢 Nueva oficina recibida:', data.data);
+
+                // Actualizar la lista de oficinas
+                Object.keys(data.data).forEach(oficina => {
+                    if (!datosEjemplo.resumenes[oficina]) {
+                        // Crear datos iniciales para nueva oficina
+                        datosEjemplo.resumenes[oficina] = {
+                            timestamp: Math.floor(Date.now() / 1000),
+                            corriente_a: 2.5 + Math.random() * 3, // Datos realistas
+                            consumo_kvh: 0.55 + Math.random() * 1,
+                            consumo_total_kvh: 0,
+                            min_temp: 22.0 + Math.random() * 2,
+                            max_temp: 24.0 + Math.random() * 3,
+                            tiempo_presente: 0,
+                            monto_estimado: 0,
+                            monto_total: 0
+                        };
+
+                        datosEjemplo.dispositivos[oficina] = { aire: true, luces: true };
+
+                        console.log(`✅ Nueva oficina creada: ${oficina}`);
+                    }
+                });
+
+                // Broadcast a todos los clientes de oficinas
+                wssOficinas.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        const oficinasParaEnviar = {};
+                        Object.keys(datosEjemplo.resumenes).forEach(oficina => {
+                            oficinasParaEnviar[oficina] = {
+                                nombre: oficina,
+                                activa: true,
+                                timestamp: Math.floor(Date.now() / 1000)
+                            };
+                        });
+
+                        client.send(JSON.stringify({
+                            tipo: 'oficinas',
+                            data: oficinasParaEnviar
+                        }));
+                    }
+                });
+            } else if (data.tipo === 'eliminar_oficina') {
+                const { oficina } = data.data;
+                console.log(`🗑️ Solicitando eliminación de oficina: ${oficina}`);
+
+                // Eliminar de los datos locales
+                if (datosEjemplo.resumenes[oficina]) {
+                    delete datosEjemplo.resumenes[oficina];
+                    delete datosEjemplo.dispositivos[oficina];
+                    console.log(`✅ Oficina ${oficina} eliminada localmente`);
+                }
+
+                // Eliminar de Firebase
+                eliminarOficinaDeFirebase(oficina);
+
+                // Broadcast la lista actualizada a todos los clientes
+                broadcastOficinasActualizadas();
+            }
+        } catch (error) {
+            console.error('❌ Error procesando mensaje de oficinas:', error);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('🔌 Cliente OFICINAS desconectado');
+    });
+});
+
+// Función para eliminar oficina de Firebase
+async function eliminarOficinaDeFirebase(oficinaId) {
+    try {
+        const db = initializeFirebase();
+        await db.ref(`monitoreo_consumo/oficinas/${oficinaId}`).remove();
+        await db.ref(`monitoreo_consumo/resumenes/${oficinaId}`).remove();
+        await db.ref(`monitoreo_consumo/avisos/${oficinaId}`).remove();
+        
+        console.log(`✅ Oficina ${oficinaId} eliminada de Firebase`);
+    } catch (error) {
+        console.error(`❌ Error eliminando oficina ${oficinaId} de Firebase:`, error);
+    }
+}
+
+// Función para broadcast de oficinas actualizadas
+function broadcastOficinasActualizadas() {
+    const oficinasData = {};
+    Object.keys(datosEjemplo.resumenes).forEach(oficina => {
+        oficinasData[oficina] = {
+            nombre: oficina,
+            activa: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        };
+    });
+    
+    wssOficinas.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                tipo: 'oficinas',
+                data: oficinasData
+            }));
+        }
+    });
+}
+
 const wssParams = new WebSocket.Server({ noServer: true });
 
 
 wssParams.on('connection', (ws) => {
     console.log('🔌 Cliente conectado a PARAMS');
-    
+
+    db.ref('monitoreo_consumo/configuracion').once('value')
+        .then((snapshot) => {
+            const configData = snapshot.val() || {
+                hora_inicio: 8.0,
+                hora_fin: 20.0,
+                umbral_temperatura_ac: 25.0,
+                umbral_corriente: 21.5,
+                voltaje: 220.0,
+                costo_kwh: 0.25
+            };
+
+            ws.send(JSON.stringify({
+                tipo: 'params',
+                data: configData
+            }));
+        })
+        .catch((error) => {
+            console.error('❌ Error cargando configuración:', error);
+        });
+
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.tipo === 'actualizar_params') {
+                console.log('📝 Parámetros actualizados:', data.data);
+
+                // GUARDAR EN FIREBASE
+                try {
+                    await db.ref('monitoreo_consumo/configuracion').set(data.data);
+                    console.log('✅ Configuración guardada en Firebase');
+                } catch (firebaseError) {
+                    console.error('❌ Error guardando en Firebase:', firebaseError);
+                }
+
+                // Broadcast a todos los clientes
+                wssParams.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            tipo: 'params',
+                            data: data.data
+                        }));
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error procesando parámetros:', error);
+        }
+    });
     // En Node.js no tenemos localStorage, así que iniciamos con valores por defecto
     // o podemos usar un objeto simple en memoria
     const configDefault = {
@@ -272,19 +466,19 @@ wssParams.on('connection', (ws) => {
         voltaje: 220.0,
         costo_kwh: 0.25
     };
-    
+
     // Enviar configuración por defecto
     ws.send(JSON.stringify({
         tipo: 'params',
         data: configDefault
     }));
-    
+
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
             if (data.tipo === 'actualizar_params') {
                 console.log('📝 Parámetros actualizados:', data.data);
-                
+
                 // Broadcast a todos los clientes
                 wssParams.clients.forEach(client => {
                     if (client.readyState === WebSocket.OPEN) {
@@ -302,6 +496,7 @@ wssParams.on('connection', (ws) => {
 });
 
 
+const db = admin.database();
 
 server.listen(PORT_WS, () => {
     console.log('✅ Servidor WebSocket escuchando en puerto', PORT_WS);

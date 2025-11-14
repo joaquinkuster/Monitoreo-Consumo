@@ -1,0 +1,31 @@
+{
+  "offices": [
+    {
+      "id": "A",
+      "consumption": 1.14,
+      "current": 5.2,
+      "min_temp": 22.5,
+      "max_temp": 25.8,
+      "active_time": 300,
+      "cost": 0.29
+    },
+    {
+      "id": "B", 
+      "consumption": 0.84,
+      "current": 3.8,
+      "min_temp": 23.1,
+      "max_temp": 26.2,
+      "active_time": 240,
+      "cost": 0.21
+    },
+    {
+      "id": "C",
+      "consumption": 1.56,
+      "current": 7.1,
+      "min_temp": 21.8,
+      "max_temp": 24.9,
+      "active_time": 420,
+      "cost": 0.39
+    }
+  ]
+}
