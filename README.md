@@ -12,7 +12,7 @@ Sistema distribuido en tiempo real para monitoreo inteligente de consumo energé
 
 ---
 
-## 📑 Tabla de Contenidos
+## Tabla de Contenidos
 
 - [Características Principales](#-características-principales)
 - [Arquitectura del Sistema](#️-arquitectura-del-sistema)
@@ -34,16 +34,16 @@ Sistema distribuido en tiempo real para monitoreo inteligente de consumo energé
 ---
 
 
-## 🌟 Características Principales
+## Características Principales
 
-- ⚡ **Monitoreo en Tiempo Real**: Visualización instantánea de consumo eléctrico, temperatura y presencia
-- 📊 **Análisis Avanzado**: Procesamiento paralelo con MPI para análisis de eficiencia energética
-- 🔄 **Arquitectura Distribuida**: Sistema basado en MQTT Publisher/Subscriber con backend Node.js y Go
-- 🔥 **Firebase Integration**: Persistencia de datos en tiempo real
-- 📈 **Visualizaciones Interactivas**: Gráficos dinámicos con Chart.js
-- 🎯 **Detección Inteligente de Alertas**: Sistema automático de detección de anomalías
+-  **Monitoreo en Tiempo Real**: Visualización instantánea de consumo eléctrico, temperatura y presencia
+-  **Análisis Avanzado**: Procesamiento paralelo con MPI para análisis de eficiencia energética
+-  **Arquitectura Distribuida**: Sistema basado en MQTT Publisher/Subscriber con backend Node.js y Go
+-  **Firebase Integration**: Persistencia de datos en tiempo real
+-  **Visualizaciones Interactivas**: Gráficos dinámicos con Chart.js
+-  **Detección Inteligente de Alertas**: Sistema automático de detección de anomalías
 
-## 🏗️ Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ```
 ┌─────────────┐     MQTT      ┌──────────────┐
@@ -73,7 +73,7 @@ Sistema distribuido en tiempo real para monitoreo inteligente de consumo energé
                               └──────────────┘
 ```
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
 | Software | Versión Mínima | Propósito |
 |----------|---------------|-----------|
@@ -82,7 +82,7 @@ Sistema distribuido en tiempo real para monitoreo inteligente de consumo energé
 | **Mosquitto** | 2.0+ | MQTT Broker |
 | **Firebase Account** | - | Base de datos en la nube |
 
-## 🚀 Instalación Rápida
+## Instalación Rápida
 
 ### 1. Clonar el Repositorio
 
@@ -120,7 +120,7 @@ El script instalará automáticamente:
 node semilla_firebase.js
 ```
 
-## 🎮 Uso
+## Uso
 
 ### Iniciar el Sistema Completo
 
@@ -129,11 +129,11 @@ node semilla_firebase.js
 ```
 
 Esto iniciará automáticamente:
-1. 📡 Mosquitto MQTT Broker (puerto 1883)
-2. 🔌 WebSocket Server (puerto 8081)
-3. 🌐 Dashboard HTTP Server (puerto 8080)
-4. 📥 Go Subscriber (procesador de eventos)
-5. 📊 Go Publisher (simulador de sensores)
+1. Mosquitto MQTT Broker (puerto 1883)
+2. WebSocket Server (puerto 8081)
+3. Dashboard HTTP Server (puerto 8080)
+4. Go Subscriber (procesador de eventos)
+5. Go Publisher (simulador de sensores)
 
 ### Acceder al Dashboard
 
@@ -153,7 +153,7 @@ Abre tu navegador en: **http://localhost:8080**
 
 O presiona `Ctrl+C` si lo iniciaste con `./monitoreo.sh comenzar`
 
-## 📊 Componentes del Sistema
+## Componentes del Sistema
 
 ### Backend
 
@@ -204,7 +204,7 @@ O presiona `Ctrl+C` si lo iniciaste con `./monitoreo.sh comenzar`
 - Configuración de parámetros
 - Tema claro/oscuro
 
-## 📡 API Reference
+## API Reference
 
 ### WebSocket Endpoints
 
@@ -284,7 +284,7 @@ Luego sigue la guía en [`DEPLOY_NETLIFY.md`](DEPLOY_NETLIFY.md) para desplegar 
 - 📨 Referencia completa de API MQTT
 - 💡 Ejemplos de código interactivos
 
-## 🗂️ Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 monitoreo-consumo/
@@ -324,7 +324,7 @@ monitoreo-consumo/
 └── README.md
 ```
 
-## 🔧 Configuración Avanzada
+## Configuración Avanzada
 
 ### Parámetros del Sistema
 
@@ -356,7 +356,7 @@ mpicc -o mpi_analysis mpi_analysis.c -ljansson -lm
 mpirun -np 4 ./mpi_analysis test_data.json
 ```
 
-## 🐛 Solución de Problemas
+## Solución de Problemas
 
 ### Dashboard no carga
 
@@ -390,7 +390,7 @@ netstat -ano | findstr :1883  # Windows
 sudo systemctl stop mosquitto  # Linux
 ```
 
-## 📝 Scripts Disponibles
+## Scripts Disponibles
 
 | Comando | Descripción |
 |---------|-------------|
@@ -402,7 +402,7 @@ sudo systemctl stop mosquitto  # Linux
 | `node semilla_firebase.js` | Inicializar base de datos |
 | `cd docs && npm run docs:dev` | Ejecutar documentación |
 
-## 🤝 Contribuir
+## Contribuir
 
 Las contribuciones son bienvenidas. Por favor:
 
@@ -412,11 +412,11 @@ Las contribuciones son bienvenidas. Por favor:
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
 
-## 👥 Autores
+## Autores
 
 **Trabajo Final - Paradigmas y Lenguajes de Programación 2025**
 
@@ -429,7 +429,7 @@ Universidad Nacional de Misiones (UNAM)
 Facultad de Ciencias Exactas Quimicas y Naturales
 
 
-## 🙏 Agradecimientos
+## Agradecimientos
 
 - [Eclipse Paho](https://www.eclipse.org/paho/) - Cliente MQTT
 - [Firebase](https://firebase.google.com/) - Base de datos en tiempo real
