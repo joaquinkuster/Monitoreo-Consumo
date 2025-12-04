@@ -1,272 +1,432 @@
-# Sistema de Monitoreo Energético - Multi-Paradigma
+# Sistema de Monitoreo de Consumo Eléctrico
 
-Un sistema avanzado de monitoreo de consumo eléctrico que integra múltiples paradigmas de programación (MPI, OpenMP, Haskell, Prolog) con tecnologías modernas para análisis en tiempo real y optimización energética.
+> **Paradigmas y Lenguajes de Programación 2025**  
+> **Trabajo Final**  
+> **Autores**: Küster Joaquín • Da Silva Marcos • Martinez Lázaro Ezequiel
 
-## Características Principales
+Sistema distribuido en tiempo real para monitoreo inteligente de consumo energético en múltiples oficinas, con arquitectura basada en MQTT, WebSocket y procesamiento paralelo.
 
-### Monitoreo en Tiempo Real
-- **Sensores simulados** para presencia, corriente y temperatura
-- **Broker MQTT** (Mosquitto) para comunicación descentralizada
-- **WebSockets** para actualizaciones en tiempo real del dashboard
-- **Firebase Realtime Database** para persistencia de datos
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Go](https://img.shields.io/badge/Go-1.19+-blue.svg)](https://golang.org/)
 
-### Multi-Paradigma Integrado
-- **MPI** - Procesamiento distribuido para análisis masivo
-- **OpenMP** - Paralelización para procesamiento de streams
-- **Haskell** - Análisis funcional puro de tendencias
-- **Prolog** - Sistema de reglas inteligentes para recomendaciones
-- **JavaScript/Node.js** - Dashboard interactivo con visualizaciones 3D
+---
 
-### Dashboard Avanzado
-- **Visualizaciones 3D** con Chart.js y Three.js
-- **Métricas de eficiencia** en tiempo real
-- **Sistema de alertas** inteligente
-- **Control remoto** de dispositivos (luces, aire acondicionado)
-- **Análisis OLAP** para business intelligence
+## 📑 Tabla de Contenidos
 
-## Arquitectura del Sistema
+- [Características Principales](#-características-principales)
+- [Arquitectura del Sistema](#️-arquitectura-del-sistema)
+- [Requisitos Previos](#-requisitos-previos)
+- [Instalación Rápida](#-instalación-rápida)
+- [Uso](#-uso)
+- [Componentes del Sistema](#-componentes-del-sistema)
+- [API Reference](#-api-reference)
+- [Documentación Completa](#-documentación-completa)
+- [Estructura del Proyecto](#️-estructura-del-proyecto)
+- [Configuración Avanzada](#-configuración-avanzada)
+- [Solución de Problemas](#-solución-de-problemas)
+- [Scripts Disponibles](#-scripts-disponibles)
+- [Contribuir](#-contribuir)
+- [Licencia](#-licencia)
+- [Autores](#-autores)
+- [Agradecimientos](#-agradecimientos)
+
+---
+
+
+## 🌟 Características Principales
+
+- ⚡ **Monitoreo en Tiempo Real**: Visualización instantánea de consumo eléctrico, temperatura y presencia
+- 📊 **Análisis Avanzado**: Procesamiento paralelo con MPI para análisis de eficiencia energética
+- 🔄 **Arquitectura Distribuida**: Sistema basado en MQTT Publisher/Subscriber con backend Node.js y Go
+- 🔥 **Firebase Integration**: Persistencia de datos en tiempo real
+- 📈 **Visualizaciones Interactivas**: Gráficos dinámicos con Chart.js
+- 🎯 **Detección Inteligente de Alertas**: Sistema automático de detección de anomalías
+
+## 🏗️ Arquitectura del Sistema
 
 ```
-Monitoreo-Consumo/
-├── 📁 mqtt/
-│   ├── 📁 publisher/          # Simulador de sensores (Go)
-│   │   └── main.go
-│   └── 📁 subscriber/         # Procesador de datos (Go + Firebase)
-│       └── main.go
-├── 📁 config/
-│   ├── firebase-config.js     # Configuración Firebase
-│   └── mosquitto.conf         # Configuración broker MQTT
-├── 📁 resources/
-│   ├── template.html          # Dashboard principal
-│   ├── dashboard.js           # Servidor HTTP
-│   ├── socket.js              # Servidor WebSocket
-│   ├── 📁 assets/
-│   │   ├── dashboard-enhanced.js  # Lógica del dashboard
-│   │   ├── styles-modern.css      # Estilos glassmorphism
-│   │   └── theme-toggle.js        # Control de temas
-│   └── package.json           # Dependencias Node.js
-├── 📁 credentials/
-│   └── firebase-credentials.json  # Credenciales Firebase
-├── 📁 logs/                   # Logs del sistema
-├── 📁 data/                   # Datos persistentes Mosquitto
-├── monitoreo.sh               # Script de gestión del sistema
-└── semilla_firebase.js        # Inicialización de base de datos
+┌─────────────┐     MQTT      ┌──────────────┐
+│   Sensores  │──────────────▶│  Mosquitto   │
+│  (Simulados)│               │    Broker    │
+└─────────────┘               └──────┬───────┘
+                                     │
+                    ┌────────────────┼────────────────┐
+                    │                │                │
+                    ▼                ▼                ▼
+            ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+            │ Go Publisher │  │ Go Subscriber│  │   Firebase   │
+            │  (Simulador) │  │  (Procesador)│  │   Database   │
+            └──────────────┘  └──────┬───────┘  └──────┬───────┘
+                                     │                 │
+                                     │                 │
+                                     ▼                 ▼
+                              ┌──────────────┐  ┌──────────────┐
+                              │  WebSocket   │  │ MPI Backend  │
+                              │    Server    │  │  (Análisis)  │
+                              └──────┬───────┘  └──────────────┘
+                                     │
+                                     ▼
+                              ┌──────────────┐
+                              │  Dashboard   │
+                              │   Frontend   │
+                              └──────────────┘
 ```
 
-## Instalación Rápida
+## 📋 Requisitos Previos
 
-### Prerrequisitos
+| Software | Versión Mínima | Propósito |
+|----------|---------------|-----------|
+| **Go** | 1.19+ | Publisher y Subscriber MQTT |
+| **Node.js** | 14.0+ | WebSocket y HTTP servers |
+| **Mosquitto** | 2.0+ | MQTT Broker |
+| **Firebase Account** | - | Base de datos en la nube |
+
+## 🚀 Instalación Rápida
+
+### 1. Clonar el Repositorio
+
 ```bash
-# Go 1.16+
-go version
-
-# Node.js 14+
-node --version
-
-# Mosquitto MQTT Broker
-mosquitto --version
+git clone https://github.com/tu-usuario/monitoreo-consumo.git
+cd monitoreo-consumo
 ```
 
-### Configuración Inmediata
-```bash
-# 1. Clonar y configurar
-git clone <tu-repositorio>
-cd Monitoreo-Consumo
+### 2. Configurar Firebase
 
-# 2. Configuración automática
+1. Crea un proyecto en [Firebase Console](https://console.firebase.google.com/)
+2. Habilita **Realtime Database**
+3. Descarga las credenciales (Service Account Key)
+4. Guarda el archivo como `credentials/firebase-credentials.json`
+
+### 3. Ejecutar Instalación Automática
+
+```bash
+# Dar permisos de ejecución (Linux/macOS)
+chmod +x monitoreo.sh
+
+# Ejecutar instalación
 ./monitoreo.sh instalar
-
-# 3. Colocar credenciales de Firebase en:
-#    credentials/firebase-credentials.json
 ```
 
-## Uso del Sistema
+El script instalará automáticamente:
+- ✅ Dependencias Go (`go mod tidy`)
+- ✅ Dependencias Node.js (`npm install`)
+- ✅ Configuración de Mosquitto
+- ✅ Estructura de carpetas
 
-### Iniciar Todo el Sistema
+### 4. Inicializar Base de Datos
+
+```bash
+node semilla_firebase.js
+```
+
+## 🎮 Uso
+
+### Iniciar el Sistema Completo
+
 ```bash
 ./monitoreo.sh comenzar
 ```
 
+Esto iniciará automáticamente:
+1. 📡 Mosquitto MQTT Broker (puerto 1883)
+2. 🔌 WebSocket Server (puerto 8081)
+3. 🌐 Dashboard HTTP Server (puerto 8080)
+4. 📥 Go Subscriber (procesador de eventos)
+5. 📊 Go Publisher (simulador de sensores)
+
+### Acceder al Dashboard
+
+Abre tu navegador en: **http://localhost:8080**
+
 ### Ver Estado del Sistema
+
 ```bash
 ./monitoreo.sh estado
 ```
 
 ### Detener el Sistema
+
 ```bash
 ./monitoreo.sh parar
 ```
 
-### Acceso al Dashboard
-Una vez iniciado, abre tu navegador en:
+O presiona `Ctrl+C` si lo iniciaste con `./monitoreo.sh comenzar`
+
+## 📊 Componentes del Sistema
+
+### Backend
+
+#### 1. **MQTT Broker (Mosquitto)**
+- Puerto: 1883
+- Protocolo: MQTT v3.1.1
+- Maneja comunicación pub/sub entre componentes
+
+#### 2. **Go Publisher** (`mqtt/publisher/main.go`)
+- Simula sensores de múltiples oficinas
+- Publica datos cada 10 segundos
+- Tópicos: `oficinas/{id}/sensores`
+
+#### 3. **Go Subscriber** (`mqtt/subscriber/main.go`)
+- Procesa mensajes MQTT
+- Detecta 13 tipos de alertas
+- Genera resúmenes cada 60 segundos
+- Guarda datos en Firebase
+
+#### 4. **WebSocket Server** (`socket.js`)
+- Puerto: 8081
+- Endpoints:
+  - `/ws/resumenes` - Resúmenes de consumo
+  - `/ws/avisos` - Alertas del sistema
+  - `/ws/dispositivos` - Control de dispositivos
+  - `/ws/params` - Configuración
+  - `/ws/oficinas` - Gestión de oficinas
+
+#### 5. **HTTP Server** (`dashboard.js`)
+- Puerto: 8080
+- Sirve el dashboard frontend
+
+#### 6. **Firebase Realtime Database**
+- Persistencia de datos
+- Estructura: oficinas, avisos, resúmenes, configuración
+
+#### 7. **MPI Backend** (`backend/mpi/mpi_analysis.c`)
+- Procesamiento paralelo
+- Análisis de eficiencia energética
+- Clustering de consumo
+
+### Frontend
+
+#### Dashboard (`resources/template.html`)
+- Visualización en tiempo real con Chart.js
+- Control de dispositivos (luces, aire acondicionado)
+- Gestión de oficinas
+- Configuración de parámetros
+- Tema claro/oscuro
+
+## 📡 API Reference
+
+### WebSocket Endpoints
+
+#### `/ws/resumenes`
+Resúmenes de consumo por oficina:
+```json
+{
+  "tipo": "resumenes",
+  "data": {
+    "A": {
+      "corriente_a": 12.5,
+      "consumo_kvh": 2.75,
+      "temperatura": 24.3,
+      "monto_estimado": 0.69
+    }
+  }
+}
 ```
-http://localhost:8080
+
+#### `/ws/dispositivos`
+Control de dispositivos:
+```javascript
+// Enviar
+ws.send(JSON.stringify({
+    tipo: 'actualizar_dispositivo',
+    oficina: 'A',
+    dispositivo: 'luces',
+    estado: false
+}));
 ```
 
-## 🔧 Componentes del Sistema
+### MQTT Topics
 
-### 1. 📡 Publisher (Simulador de Sensores)
-- **Lenguaje**: Go
-- **Función**: Simula sensores de oficinas (A, B, C)
-- **Datos generados**: Presencia, corriente, temperatura
-- **Publicación**: Topics MQTT cada 10 segundos
+#### `oficinas/{id}/sensores`
+Datos de sensores:
+```json
+{
+  "oficina": "A",
+  "timestamp": 1701648000,
+  "presencia": true,
+  "corriente_a": 12.5,
+  "temperatura": 24.3
+}
+```
 
-### 2. 📥 Subscriber (Procesador de Datos)
-- **Lenguaje**: Go + Firebase Admin SDK
-- **Función**: Procesa datos MQTT y los almacena en Firebase
-- **Características**: 
-  - Detección de anomalías
-  - Generación de resúmenes
-  - Sistema de alertas inteligente
+## 📖 Documentación Completa
 
-### 3. 🌐 Dashboard (Interfaz Web)
-- **Tecnologías**: HTML5, CSS3, JavaScript, Chart.js, Three.js
-- **Características**:
-  - Glassmorphism design
-  - Visualizaciones 3D interactivas
-  - Control de dispositivos en tiempo real
-  - Análisis multi-paradigma integrado
+Para documentación detallada, ejecuta:
 
-### 4. 🔌 WebSocket Server
-- **Protocolo**: WebSocket en puerto 8081
-- **Canales**: resumenes, avisos, dispositivos, params
-- **Función**: Comunicación bidireccional dashboard-backend
-
-## Características del Dashboard
-
-### Visualizaciones
-- **Gráfico principal** de consumo en tiempo real
-- **Distribución 3D** por oficina
-- **Temperaturas** con gráficos de barras
-- **Métricas de eficiencia** con indicadores de tendencia
-
-### Controles en Tiempo Real
-- **Encendido/apagado** de luces por oficina
-- **Control de aire acondicionado**
-- **Configuración de umbrales** de consumo
-- **Horarios laborales** personalizables
-
-### Sistema de Alertas
-- **Consumo anómalo** sin presencia
-- **Cortes de energía** detectados
-- **Sensores no responden**
-- **Corriente elevada** por encima de umbral
-
-## Integración Multi-Paradigma
-
-### MPI - Procesamiento Distribuido
 ```bash
-# Análisis distribuido de eficiencia
-npm run compile-mpi
+cd docs
+npm install
+npm run docs:dev
 ```
 
-### OpenMP - Paralelización
-```bash
-# Procesamiento paralelo de streams
-npm run compile-openmp
+Luego abre: **http://localhost:5173**
+
+La documentación incluye:
+- 📘 Guía de introducción
+- 🏗️ Arquitectura detallada con diagramas Mermaid
+- 🔧 Instalación paso a paso
+- 🎮 Guía de ejecución
+- 📡 Referencia completa de API WebSocket
+- 📨 Referencia completa de API MQTT
+- 💡 Ejemplos de código interactivos
+
+## 🗂️ Estructura del Proyecto
+
+```
+monitoreo-consumo/
+├── backend/
+│   └── mpi/                    # Procesamiento paralelo MPI
+│       ├── mpi_analysis.c
+│       └── test_data.json
+├── config/
+│   ├── firebase-config.js
+│   └── mosquitto.conf          # Configuración MQTT broker
+├── credentials/
+│   └── firebase-credentials.json  # Credenciales Firebase (no en Git)
+├── data/
+│   └── mosquitto/              # Persistencia MQTT
+├── docs/                       # Documentación VitePress
+│   ├── .vitepress/
+│   ├── guide/
+│   ├── api/
+│   └── index.md
+├── logs/
+│   └── mosquitto.log
+├── mqtt/
+│   ├── publisher/              # Simulador de sensores (Go)
+│   │   └── main.go
+│   └── subscriber/             # Procesador de eventos (Go)
+│       └── main.go
+├── resources/
+│   ├── assets/                 # CSS y JS del dashboard
+│   └── template.html           # Dashboard frontend
+├── dashboard.js                # Servidor HTTP
+├── socket.js                   # Servidor WebSocket
+├── semilla_firebase.js         # Script de inicialización DB
+├── monitoreo.sh                # Script de control del sistema
+├── go.mod
+├── go.sum
+├── package.json
+└── README.md
 ```
 
-### Haskell - Análisis Funcional
-```bash
-# Análisis de tendencias funcional
-npm run compile-haskell
-```
-
-### Prolog - Sistema de Reglas
-```prolog
-% Reglas inteligentes para optimización
-:- consult('backend/prolog/energy_rules.pl').
-```
-
-## Configuración Avanzada
+## 🔧 Configuración Avanzada
 
 ### Parámetros del Sistema
+
+Edita `semilla_firebase.js` para personalizar:
+
 ```javascript
-{
-  "hora_inicio": 8.0,           // Horario laboral inicio
-  "hora_fin": 20.0,             // Horario laboral fin
-  "umbral_temperatura_ac": 25.0, // Temp para activar AC
-  "umbral_corriente": 21.5,     // Alerta de corriente
-  "voltaje": 220.0,             // Voltaje de referencia
-  "costo_kwh": 0.25             // Costo por kWh
-}
+const paramsPorDefecto = {
+    hora_inicio: 8.0,           // Hora de inicio (8:00 AM)
+    hora_fin: 20.0,             // Hora de fin (8:00 PM)
+    umbral_temperatura_ac: 25.0, // °C para activar AC
+    umbral_corriente: 21.5,     // Amperes máximos
+    voltaje: 220.0,             // Voltaje de red
+    costo_kwh: 0.25,            // Costo por kWh
+};
 ```
 
-### Personalización de Oficinas
-```javascript
-// Agregar nuevas oficinas desde el dashboard
-{
-  "A": { "nombre": "Oficina A", "sector": "Informática" },
-  "B": { "nombre": "Oficina B", "sector": "Informática" },
-  "C": { "nombre": "Oficina C", "sector": "Informática" }
-}
-```
+### Compilar Backend MPI (Opcional)
 
-## Solución de Problemas
-
-### Error: Credenciales Firebase no encontradas
 ```bash
-# Colocar el archivo en:
-credentials/firebase-credentials.json
+# Instalar OpenMPI
+sudo apt install openmpi-bin libopenmpi-dev  # Linux
+brew install open-mpi                         # macOS
+
+# Compilar
+cd backend/mpi
+mpicc -o mpi_analysis mpi_analysis.c -ljansson -lm
+
+# Ejecutar con 4 procesos
+mpirun -np 4 ./mpi_analysis test_data.json
 ```
 
-### Error: Puerto en uso
+## 🐛 Solución de Problemas
+
+### Dashboard no carga
+
 ```bash
-# Cambiar puertos en dashboard.js y socket.js
-const PORT = 8080;  # Dashboard HTTP
-const PORT = 8081;  # WebSocket Server
+# Verificar que los servidores estén corriendo
+./monitoreo.sh estado
+
+# Reiniciar sistema
+./monitoreo.sh parar
+./monitoreo.sh comenzar
 ```
 
-### Error: Mosquitto no inicia
+### Error de conexión a Firebase
+
 ```bash
-# Verificar instalación de Mosquitto
-mosquitto --version
-# O usar: sudo apt-get install mosquitto
+# Verificar credenciales
+ls -la credentials/firebase-credentials.json
+
+# Verificar formato JSON
+cat credentials/firebase-credentials.json | jq .
 ```
 
-## Métricas y Análisis
+### Puerto 1883 en uso
 
-El sistema proporciona:
-- **Consumo total** en kWh y costos asociados
-- **Eficiencia energética** por oficina (%)  
-- **Tiempo de actividad** y patrones de uso
-- **Ahorro estimado** y CO2 evitado
-- **Tendencias** y predicciones de consumo
-
-## Contribución
-
-### Estructura de Desarrollo
 ```bash
-# 1. Fork el proyecto
-# 2. Crear feature branch
-git checkout -b feature/nueva-caracteristica
+# Ver qué proceso usa el puerto
+lsof -i :1883  # Linux/macOS
+netstat -ano | findstr :1883  # Windows
 
-# 3. Commit cambios
-git commit -m "feat: agregar nueva característica"
-
-# 4. Push al branch
-git push origin feature/nueva-caracteristica
-
-# 5. Crear Pull Request
+# Detener Mosquitto existente
+sudo systemctl stop mosquitto  # Linux
 ```
 
-### Áreas de Mejora
-- [ ] Machine Learning para predicción de consumo
-- [ ] Integración con hardware real (ESP32, Arduino)
-- [ ] Análisis avanzado con Apache Spark
-- [ ] Dashboard móvil responsive
-- [ ] Exportación de reportes PDF/Excel
+## 📝 Scripts Disponibles
 
-## Licencia
+| Comando | Descripción |
+|---------|-------------|
+| `./monitoreo.sh instalar` | Instalación inicial del sistema |
+| `./monitoreo.sh comenzar` | Iniciar todos los componentes |
+| `./monitoreo.sh estado` | Ver estado de servicios |
+| `./monitoreo.sh parar` | Detener todos los servicios |
+| `./monitoreo.sh ayuda` | Mostrar ayuda |
+| `node semilla_firebase.js` | Inicializar base de datos |
+| `cd docs && npm run docs:dev` | Ejecutar documentación |
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+## 🤝 Contribuir
 
-## Autores
+Las contribuciones son bienvenidas. Por favor:
 
-- **Küster Joaquín** - Desarrollo backend y arquitectura
-- **Da Silva Marcos** - Frontend y visualizaciones  
-- **Martinez Lázaro Ezequiel** - Integración multi-paradigma
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
+
+## 👥 Autores
+
+**Trabajo Final - Paradigmas y Lenguajes de Programación 2025**
+
+- **[Küster Joaquín](https://github.com/joaquinkuster)** - [@joaquinkuster](https://github.com/joaquinkuster)
+- **[Da Silva Marcos](https://github.com/Marcos2497)** - [@Marcos2497](https://github.com/Marcos2497)
+- **[Martinez Lázaro Ezequiel](https://github.com/lazamartinez)** - [@lazamartinez](https://github.com/lazamartinez)
+
+### Institución
+Universidad Nacional de La Plata (UNLP)  
+Facultad de Informática
+
+
+## 🙏 Agradecimientos
+
+- [Eclipse Paho](https://www.eclipse.org/paho/) - Cliente MQTT
+- [Firebase](https://firebase.google.com/) - Base de datos en tiempo real
+- [Chart.js](https://www.chartjs.org/) - Visualizaciones
+- [Mosquitto](https://mosquitto.org/) - MQTT Broker
+- [VitePress](https://vitepress.dev/) - Documentación
 
 ---
 
-**🏢 Universidad Nacional de Misiones** - *Paradigmas y Lenguajes de Programación 2025*
+<div align="center">
+  <strong>¿Listo para comenzar?</strong><br>
+  Ejecuta <code>./monitoreo.sh instalar</code> y luego <code>./monitoreo.sh comenzar</code>
+</div>

@@ -12,7 +12,16 @@
     "firebase-admin": "^11.11.0",
     "ws": "^8.14.2"
   },
-  "keywords": ["monitoring", "energy", "mqtt", "firebase"],
+  "keywords": [
+    "monitoring",
+    "energy",
+    "mqtt",
+    "firebase"
+  ],
   "author": "Sistema Monitoreo",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.25"
+  }
 }

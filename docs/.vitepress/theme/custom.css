@@ -1,0 +1,66 @@
+/* Custom styles for documentation */
+
+:root {
+    --vp-c-brand: #3b82f6;
+    --vp-c-brand-light: #60a5fa;
+    --vp-c-brand-dark: #2563eb;
+}
+
+/* Clean, solid backgrounds */
+.VPDoc,
+.VPHome {
+    background-color: var(--vp-c-bg);
+}
+
+/* Hero Image - Large but clean */
+.VPImage.image-src {
+    max-width: 1000px !important;
+    width: 100% !important;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    /* Softer shadow */
+    transition: transform 0.3s ease;
+}
+
+/* Removed hover effect as requested */
+
+.VPHero .image {
+    max-width: 1000px !important;
+    padding: 2rem 0;
+}
+
+/* Feature Cards - Minimalist */
+.VPFeature {
+    border: 1px solid var(--vp-c-divider);
+    background-color: var(--vp-c-bg-soft);
+    border-radius: 8px;
+    transition: border-color 0.2s ease;
+}
+
+.VPFeature:hover {
+    border-color: var(--vp-c-brand);
+}
+
+/* Typography */
+.VPHero .name {
+    color: var(--vp-c-brand);
+}
+
+/* Font Awesome Icons */
+.fa,
+.fas,
+.far,
+.fab {
+    margin-right: 0.5em;
+    color: var(--vp-c-brand);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 960px) {
+
+    .VPImage.image-src,
+    .VPHero .image {
+        max-width: 100% !important;
+        padding: 0 1rem;
+    }
+}
