@@ -412,8 +412,8 @@ Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detall
 - **[Martinez Lázaro Ezequiel](https://github.com/lazamartinez)** - [@lazamartinez](https://github.com/lazamartinez)
 
 ### Institución
-Universidad Nacional de La Plata (UNLP)  
-Facultad de Informática
+Universidad Nacional de Misiones (UNAM)  
+Facultad de Ciencias Exactas Quimicas y Naturales
 
 
 ## 🙏 Agradecimientos

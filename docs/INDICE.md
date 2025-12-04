@@ -168,8 +168,8 @@ graph TB
 - Da Silva Marcos
 - Martinez Lázaro Ezequiel
 
-**Institución**: Universidad Nacional de La Plata (UNLP)  
-**Facultad**: Informática
+**Institución**: Universidad Nacional de Misiones (UNAM)
+**Facultad**: Facultad de Ciencias Exactas Quimicas y Naturales
 
 ### Paradigmas Implementados
 
