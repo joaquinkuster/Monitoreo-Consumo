@@ -252,6 +252,8 @@ Datos de sensores:
 
 ## 📖 Documentación Completa
 
+### Ver Documentación Localmente
+
 Para documentación detallada, ejecuta:
 
 ```bash
@@ -262,7 +264,18 @@ npm run docs:dev
 
 Luego abre: **http://localhost:5173**
 
-La documentación incluye:
+### 🌐 Desplegar Documentación en Netlify
+
+Para compartir la documentación en línea:
+
+```bash
+cd docs
+npm run docs:build  # Construir documentación
+```
+
+Luego sigue la guía en [`DEPLOY_NETLIFY.md`](DEPLOY_NETLIFY.md) para desplegar en Netlify.
+
+**Características de la documentación:**
 - 📘 Guía de introducción
 - 🏗️ Arquitectura detallada con diagramas Mermaid
 - 🔧 Instalación paso a paso

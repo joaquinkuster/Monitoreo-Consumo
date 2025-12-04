@@ -1,3 +1,32 @@
-# Firebase credentials
-credentials/*.json
-node_modules
+# Node modules
+node_modules/
+docs/node_modules/
+
+# Build outputs
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Credentials y archivos sensibles
+credentials/
+*.pem
+*.key
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Netlify
+.netlify/

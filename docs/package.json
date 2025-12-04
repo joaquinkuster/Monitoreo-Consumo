@@ -6,16 +6,18 @@
     "scripts": {
         "docs:dev": "vitepress dev",
         "docs:build": "vitepress build",
-        "docs:preview": "vitepress preview"
+        "docs:preview": "vitepress preview",
+        "docs:pdf": "press-export-pdf export ."
     },
     "devDependencies": {
-        "vitepress": "^1.6.4",
-        "vue": "^3.5.25",
         "chart.js": "^4.4.0",
-        "echarts": "^5.4.3",
         "d3": "^7.8.5",
+        "echarts": "^5.4.3",
+        "markdown-it-katex": "^2.0.3",
         "mermaid": "^10.6.1",
-        "markdown-it-katex": "^2.0.3"
+        "vitepress": "^1.6.4",
+        "vitepress-export-pdf": "^1.0.0",
+        "vue": "^3.5.25"
     },
     "dependencies": {
         "vue-chartjs": "^5.3.0"
